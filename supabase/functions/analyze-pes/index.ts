@@ -17,12 +17,33 @@ class PerthEmpathyScale {
   }
 
   public async evaluateResponse(response: string, category: string): Promise<number> {
-    const truncatedResponse = this.truncateResponse(response);
-    const features = await this.extractFeatures(truncatedResponse);
-    // Calculate the average of all features and scale to 0-100
-    const score = (features.reduce((a, b) => a + b, 0) / features.length) * 100;
-    // Ensure the score is between 0 and 100
-    return Math.min(Math.max(score, 0), 100);
+    try {
+      // Handle empty or invalid responses
+      if (!response || typeof response !== 'string') {
+        console.warn(`Invalid response for category ${category}:`, response);
+        return 0;
+      }
+
+      const truncatedResponse = this.truncateResponse(response);
+      if (!truncatedResponse.trim()) {
+        console.warn(`Empty response after truncation for category ${category}`);
+        return 0;
+      }
+
+      const features = await this.extractFeatures(truncatedResponse);
+      if (!features.length) {
+        console.warn(`No features extracted for category ${category}`);
+        return 0;
+      }
+
+      // Calculate the average of all features and scale to 0-100
+      const score = (features.reduce((a, b) => a + b, 0) / features.length) * 100;
+      // Ensure the score is between 0 and 100
+      return Math.min(Math.max(score, 0), 100);
+    } catch (error) {
+      console.error(`Error evaluating response for category ${category}:`, error);
+      return 0; // Return default score instead of throwing
+    }
   }
 
   public async calculateScores(responses: Record<string, string>): Promise<EmpathyScores> {
@@ -34,29 +55,28 @@ class PerthEmpathyScale {
     };
 
     let validResponseCount = 0;
+    const errors: string[] = [];
 
     for (const [questionId, response] of Object.entries(responses)) {
-      // Skip if response is not a string
-      if (typeof response !== 'string') {
-        console.error(`Invalid response type for question ${questionId}:`, typeof response);
+      const category = this.getCategoryFromQuestionId(questionId);
+      if (!category) {
+        errors.push(`Invalid question ID: ${questionId}`);
         continue;
       }
 
-      const category = this.getCategoryFromQuestionId(questionId);
-      if (category) {
-        try {
-          scores[category] = await this.evaluateResponse(response, category);
-          validResponseCount++;
-        } catch (error) {
-          console.error(`Error processing response for question ${questionId}:`, error);
-          continue;
-        }
+      try {
+        const score = await this.evaluateResponse(response, category);
+        scores[category] = score;
+        validResponseCount++;
+      } catch (error) {
+        errors.push(`Error processing response for question ${questionId}: ${error.message}`);
+        continue;
       }
     }
 
-    // Only calculate overall score if we have at least one valid response
+    // Provide more detailed error information
     if (validResponseCount === 0) {
-      throw new Error('No valid responses to analyze');
+      throw new Error(`No valid responses to analyze. Errors: ${errors.join('; ')}`);
     }
 
     const overall = Object.values(scores).reduce((a, b) => a + b, 0) / validResponseCount;
@@ -68,14 +88,19 @@ class PerthEmpathyScale {
   }
 
   private async extractFeatures(response: string): Promise<number[]> {
-    const features = [
-      this.calculateEmotionalWords(response),
-      this.calculatePerspectiveTaking(response),
-      this.calculateEmotionalMirroring(response),
-      this.calculateContextualUnderstanding(response)
-    ];
+    try {
+      const features = [
+        this.calculateEmotionalWords(response),
+        this.calculatePerspectiveTaking(response),
+        this.calculateEmotionalMirroring(response),
+        this.calculateContextualUnderstanding(response)
+      ];
 
-    return features;
+      return features.filter(feature => !isNaN(feature));
+    } catch (error) {
+      console.error('Error extracting features:', error);
+      return [0]; // Return default feature instead of empty array
+    }
   }
 
   private calculateEmotionalWords(text: string): number {
@@ -189,13 +214,19 @@ serve(async (req) => {
   try {
     const { responses } = await req.json();
     
-    // Validate responses object
-    if (!responses || typeof responses !== 'object') {
-      throw new Error('Invalid responses format: expected an object');
+    // Enhanced input validation
+    if (!responses || typeof responses !== 'object' || Object.keys(responses).length === 0) {
+      throw new Error('Invalid responses format: expected a non-empty object');
     }
+
+    // Log the received responses for debugging
+    console.log('Received responses:', responses);
 
     const pes = new PerthEmpathyScale();
     const scores = await pes.calculateScores(responses);
+
+    // Log the calculated scores for debugging
+    console.log('Calculated scores:', scores);
 
     return new Response(
       JSON.stringify(scores),
@@ -208,10 +239,14 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error processing responses:', error);
+    
+    // Enhanced error response with more details
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: 'Failed to analyze responses. Please ensure all responses are valid text.'
+        details: 'Failed to analyze responses. Please ensure all responses are valid text.',
+        timestamp: new Date().toISOString(),
+        requestId: crypto.randomUUID()
       }), 
       { 
         status: 400,
