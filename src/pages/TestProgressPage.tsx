@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Brain, FileText, BarChart2, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { mockConfigurations } from '../data/mockData';
 import { TestConfiguration } from '../types';
-import { calculateEmpathyScores } from '../lib/pes';
+import { perthEmpathyScale } from '../lib/pes';
 import { saveTestResults } from '../lib/supabase';
 
 interface ProgressStep {
@@ -78,7 +78,7 @@ const TestProgressPage: React.FC = () => {
       const responses = JSON.parse(localStorage.getItem(`test_${id}_responses`) || '{}');
       
       // Calculate scores using the Edge Function
-      const scores = await calculateEmpathyScores(responses);
+      const scores = await perthEmpathyScale.calculateScores(responses);
       setAnalysis(scores);
       
       // Generate a summary (you might want to enhance this)
