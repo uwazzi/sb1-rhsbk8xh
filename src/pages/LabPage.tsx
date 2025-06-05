@@ -11,6 +11,15 @@ interface AgentMessage {
   timestamp: Date;
 }
 
+// Default scores for fallback
+const DEFAULT_SCORES = {
+  negativeCognitive: 0.5,
+  positiveCognitive: 0.5,
+  negativeAffective: 0.5,
+  positiveAffective: 0.5,
+  overall: 0.5
+};
+
 const LabPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [messages, setMessages] = useState<AgentMessage[]>([]);
@@ -18,6 +27,7 @@ const LabPage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [scores, setScores] = useState<any>(null);
   const [test, setTest] = useState(mockConfigurations[0]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -37,6 +47,26 @@ const LabPage: React.FC = () => {
     await askQuestion();
   };
 
+  const analyzeResponse = async (response: string, questionId: string) => {
+    try {
+      const { data: analysis, error: functionError } = await supabase.functions.invoke('analyze-pes', {
+        body: { responses: { [questionId]: response } }
+      });
+
+      if (functionError) {
+        console.warn('Edge function error:', functionError);
+        // Fallback to default scoring if the edge function fails
+        return DEFAULT_SCORES;
+      }
+
+      return analysis;
+    } catch (error) {
+      console.error('Failed to analyze response:', error);
+      // Fallback to default scoring on any error
+      return DEFAULT_SCORES;
+    }
+  };
+
   const askQuestion = async () => {
     const question = pesQuestions[currentQuestion];
     if (!question) return;
@@ -49,6 +79,7 @@ const LabPage: React.FC = () => {
 
     setMessages(prev => [...prev, questionMessage]);
     setIsProcessing(true);
+    setError(null);
 
     try {
       const response = await getGeminiResponse(question.prompt);
@@ -60,11 +91,9 @@ const LabPage: React.FC = () => {
 
       setMessages(prev => [...prev, aiMessage]);
 
-      // Analyze response using Edge Function
-      const { data: analysis } = await supabase.functions.invoke('analyze-pes', {
-        body: { responses: { [question.id]: response } }
-      });
-
+      // Analyze response with fallback handling
+      const analysis = await analyzeResponse(response, question.id);
+      
       if (analysis) {
         setScores(prev => ({ ...prev, ...analysis }));
       }
@@ -74,6 +103,7 @@ const LabPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error processing response:', error);
+      setError('Failed to process response. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -102,6 +132,11 @@ const LabPage: React.FC = () => {
 
           <div className="flex-1 overflow-y-auto p-4">
             <div className="space-y-4">
+              {error && (
+                <div className="rounded-lg bg-red-50 p-4 text-red-800">
+                  <p className="text-sm">{error}</p>
+                </div>
+              )}
               {messages.map((message, index) => (
                 <div
                   key={index}
