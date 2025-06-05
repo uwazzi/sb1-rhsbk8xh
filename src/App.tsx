@@ -10,6 +10,7 @@ import ResultsPage from './pages/ResultsPage';
 import DocumentationPage from './pages/DocumentationPage';
 import NotFoundPage from './pages/NotFoundPage';
 import AuthPage from './pages/AuthPage';
+import LabPage from './pages/LabPage';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="create" element={<CheckSanityPage />} />
         <Route path="test/:id" element={<ExecuteTestPage />} />
+        <Route path="lab/:id" element={<LabPage />} />
         <Route path="progress/:id" element={<TestProgressPage />} />
         <Route path="results/:id" element={<ResultsPage />} />
         <Route path="documentation" element={<DocumentationPage />} />
