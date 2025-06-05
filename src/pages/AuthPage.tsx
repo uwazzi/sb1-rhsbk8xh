@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, Mail, User, Bot } from 'lucide-react';
-import { signIn, signUp, continueAsGuest } from '../lib/auth';
+import { Lock, Mail, User, Bot, KeyRound } from 'lucide-react';
+import { signIn, signUp, continueAsGuest, resetPassword } from '../lib/auth';
 
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const returnTo = (location.state as any)?.returnTo || '/';
 
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
@@ -16,6 +16,7 @@ const AuthPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [guestMessage, setGuestMessage] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,12 +26,16 @@ const AuthPage: React.FC = () => {
     try {
       if (mode === 'signup') {
         await signUp(email, password);
-        // After signup, automatically sign in
         await signIn(email, password);
+        navigate(returnTo);
+      } else if (mode === 'reset') {
+        await resetPassword(email);
+        setResetMessage('Check your email for password reset instructions');
+        setError('');
       } else {
         await signIn(email, password);
+        navigate(returnTo);
       }
-      navigate(returnTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
@@ -69,10 +74,16 @@ const AuthPage: React.FC = () => {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-violet-100">
-            <Lock className="h-6 w-6 text-violet-600" />
+            {mode === 'reset' ? (
+              <KeyRound className="h-6 w-6 text-violet-600" />
+            ) : (
+              <Lock className="h-6 w-6 text-violet-600" />
+            )}
           </div>
           <h2 className="mt-6 text-3xl font-bold tracking-tight text-slate-900">
-            {mode === 'signin' ? 'Sign in to your account' : 'Create your account'}
+            {mode === 'signin' ? 'Sign in to your account' : 
+             mode === 'signup' ? 'Create your account' :
+             'Reset your password'}
           </h2>
         </div>
 
@@ -86,6 +97,12 @@ const AuthPage: React.FC = () => {
           {guestMessage && (
             <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
               {guestMessage}
+            </div>
+          )}
+
+          {resetMessage && (
+            <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
+              {resetMessage}
             </div>
           )}
 
@@ -110,26 +127,40 @@ const AuthPage: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Lock className="h-5 w-5 text-slate-400" />
+            {mode !== 'reset' && (
+              <div>
+                <label htmlFor="password" className="sr-only">
+                  Password
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Lock className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full rounded-md border-slate-300 pl-10 focus:border-violet-500 focus:ring-violet-500"
+                    placeholder="Password"
+                  />
                 </div>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full rounded-md border-slate-300 pl-10 focus:border-violet-500 focus:ring-violet-500"
-                  placeholder="Password"
-                />
               </div>
-            </div>
+            )}
           </div>
+
+          {mode === 'signin' && (
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setMode('reset')}
+                className="text-sm font-medium text-violet-600 hover:text-violet-500"
+              >
+                Forgot your password?
+              </button>
+            </div>
+          )}
 
           <div>
             <button
@@ -142,7 +173,7 @@ const AuthPage: React.FC = () => {
               ) : (
                 <User className="mr-2 h-5 w-5" />
               )}
-              {mode === 'signin' ? 'Sign in' : 'Sign up'}
+              {mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Sign up' : 'Reset Password'}
             </button>
           </div>
 
@@ -203,17 +234,39 @@ const AuthPage: React.FC = () => {
             <p className="text-slate-600">
               Don't have an account?{' '}
               <button
-                onClick={() => setMode('signup')}
+                onClick={() => {
+                  setMode('signup');
+                  setError('');
+                  setResetMessage('');
+                }}
                 className="font-medium text-violet-600 hover:text-violet-500"
               >
                 Sign up
               </button>
             </p>
-          ) : (
+          ) : mode === 'signup' ? (
             <p className="text-slate-600">
               Already have an account?{' '}
               <button
-                onClick={() => setMode('signin')}
+                onClick={() => {
+                  setMode('signin');
+                  setError('');
+                  setResetMessage('');
+                }}
+                className="font-medium text-violet-600 hover:text-violet-500"
+              >
+                Sign in
+              </button>
+            </p>
+          ) : (
+            <p className="text-slate-600">
+              Remember your password?{' '}
+              <button
+                onClick={() => {
+                  setMode('signin');
+                  setError('');
+                  setResetMessage('');
+                }}
                 className="font-medium text-violet-600 hover:text-violet-500"
               >
                 Sign in
