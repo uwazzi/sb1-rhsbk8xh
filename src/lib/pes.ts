@@ -1,4 +1,5 @@
-import { FastFCP } from 'fastfcp';
+// TODO: Refactor to remove FastFCP dependency and replace with alternative logic if needed.
+// import { FastFCP } from 'fastfcp';
 
 interface EmpathyScores {
   negativeCognitive: number;
@@ -9,19 +10,20 @@ interface EmpathyScores {
 }
 
 export class PerthEmpathyScale {
-  private fcp: FastFCP;
+  // private fcp: FastFCP;
 
   constructor() {
-    this.fcp = new FastFCP({
-      dimensions: ['negativeCognitive', 'positiveCognitive', 'negativeAffective', 'positiveAffective'],
-      scalingFactor: 100,
-      smoothingParameter: 0.5
-    });
+    // this.fcp = new FastFCP({
+    //   dimensions: ['negativeCognitive', 'positiveCognitive', 'negativeAffective', 'positiveAffective'],
+    //   scalingFactor: 100,
+    //   smoothingParameter: 0.5
+    // });
   }
 
   public async evaluateResponse(response: string, category: string): Promise<number> {
     const features = await this.extractFeatures(response);
-    return this.fcp.evaluate(features, category);
+    // TODO: Replace with actual evaluation logic
+    return 0;
   }
 
   public async calculateScores(responses: Record<string, string>): Promise<EmpathyScores> {
