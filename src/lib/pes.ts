@@ -1,5 +1,4 @@
-// Perth Empathy Scale Implementation
-// Based on validated psychometric scoring methods
+import { FastMCP } from 'fastmcp';
 
 interface EmpathyScores {
   negativeCognitive: number;
@@ -10,18 +9,19 @@ interface EmpathyScores {
 }
 
 export class PerthEmpathyScale {
-  private readonly maxScore = 100;
-  private readonly weights = {
-    emotionalWords: 0.3,
-    perspectiveTaking: 0.3,
-    emotionalMirroring: 0.2,
-    contextualUnderstanding: 0.2
-  };
+  private mcp: FastMCP;
+
+  constructor() {
+    this.mcp = new FastMCP({
+      dimensions: ['negativeCognitive', 'positiveCognitive', 'negativeAffective', 'positiveAffective'],
+      scalingFactor: 100,
+      smoothingParameter: 0.5
+    });
+  }
 
   public async evaluateResponse(response: string, category: string): Promise<number> {
     const features = await this.extractFeatures(response);
-    const weightedScore = this.calculateWeightedScore(features);
-    return Math.min(Math.round(weightedScore * this.maxScore), this.maxScore);
+    return this.mcp.evaluate(features, category);
   }
 
   public async calculateScores(responses: Record<string, string>): Promise<EmpathyScores> {
@@ -32,32 +32,14 @@ export class PerthEmpathyScale {
       positiveAffective: 0
     };
 
-    let counts = {
-      negativeCognitive: 0,
-      positiveCognitive: 0,
-      negativeAffective: 0,
-      positiveAffective: 0
-    };
-
     for (const [questionId, response] of Object.entries(responses)) {
       const category = this.getCategoryFromQuestionId(questionId);
       if (category) {
-        const score = await this.evaluateResponse(response, category);
-        scores[category] += score;
-        counts[category]++;
+        scores[category] = await this.evaluateResponse(response, category);
       }
     }
 
-    // Calculate averages for each category
-    for (const category of Object.keys(scores) as (keyof typeof scores)[]) {
-      if (counts[category] > 0) {
-        scores[category] = Math.round(scores[category] / counts[category]);
-      }
-    }
-
-    const overall = Math.round(
-      Object.values(scores).reduce((a, b) => a + b, 0) / Object.keys(scores).length
-    );
+    const overall = Object.values(scores).reduce((a, b) => a + b, 0) / 4;
 
     return {
       ...scores,
@@ -74,11 +56,6 @@ export class PerthEmpathyScale {
     ];
 
     return features;
-  }
-
-  private calculateWeightedScore(features: number[]): number {
-    const weights = Object.values(this.weights);
-    return features.reduce((sum, feature, i) => sum + feature * weights[i], 0);
   }
 
   private calculateEmotionalWords(text: string): number {
