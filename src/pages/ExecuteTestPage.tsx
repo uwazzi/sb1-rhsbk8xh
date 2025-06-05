@@ -4,6 +4,7 @@ import { Send, ArrowLeft, ArrowRight, HelpCircle, MessageSquare, Bot } from 'luc
 import { mockConfigurations, getAllQuestions } from '../data/mockData';
 import { TestConfiguration, TestQuestion } from '../types';
 import { getGeminiResponse } from '../lib/gemini';
+import { saveTestResponses } from '../lib/supabase';
 
 const ExecuteTestPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -71,18 +72,28 @@ const ExecuteTestPage: React.FC = () => {
     }
   };
   
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (currentResponse.trim()) {
-      setUserResponses({
+      const updatedResponses = {
         ...userResponses,
         [currentQuestion.id]: currentResponse
-      });
+      };
+      setUserResponses(updatedResponses);
+      
+      try {
+        // Save responses to Supabase
+        await saveTestResponses(id!, updatedResponses);
+        
+        // Store responses locally for analysis
+        localStorage.setItem(`test_${id}_responses`, JSON.stringify(updatedResponses));
+        
+        setIsSubmitting(true);
+        navigate(`/progress/${id}`);
+      } catch (error) {
+        console.error('Error saving responses:', error);
+        // Handle error appropriately
+      }
     }
-    
-    setIsSubmitting(true);
-    
-    // Navigate to the progress page instead of directly to results
-    navigate(`/progress/${id}`);
   };
   
   const getProgressPercentage = () => {

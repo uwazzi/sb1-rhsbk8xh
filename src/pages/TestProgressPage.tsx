@@ -4,6 +4,7 @@ import { Brain, FileText, BarChart2, ArrowRight, CheckCircle2, Loader2 } from 'l
 import { mockConfigurations } from '../data/mockData';
 import { TestConfiguration } from '../types';
 import { perthEmpathyScale } from '../lib/pes';
+import { saveTestResults } from '../lib/supabase';
 
 interface ProgressStep {
   id: string;
@@ -72,21 +73,32 @@ const TestProgressPage: React.FC = () => {
     updateStepStatus(2, 'processing');
     await delay(2000);
 
-    // Get stored responses from localStorage
-    const responses = JSON.parse(localStorage.getItem(`test_${id}_responses`) || '{}');
-    
-    // Calculate actual empathy scores
-    const scores = await perthEmpathyScale.calculateScores(responses);
-    setAnalysis(scores);
-    
-    // Store scores for results page
-    localStorage.setItem(`test_${id}_scores`, JSON.stringify(scores));
+    try {
+      // Get stored responses
+      const responses = JSON.parse(localStorage.getItem(`test_${id}_responses`) || '{}');
+      
+      // Calculate scores
+      const scores = await perthEmpathyScale.calculateScores(responses);
+      setAnalysis(scores);
+      
+      // Generate a summary (you might want to enhance this)
+      const summary = `Analysis complete with overall score of ${scores.overall}. Shows strengths in positive cognitive empathy.`;
+      
+      // Save results to Supabase
+      await saveTestResults(id!, scores, summary);
+      
+      // Store scores locally for results page
+      localStorage.setItem(`test_${id}_scores`, JSON.stringify(scores));
 
-    updateStepStatus(2, 'completed');
+      updateStepStatus(2, 'completed');
 
-    // Navigate to results after a brief delay
-    await delay(1500);
-    navigate(`/results/${id}`);
+      // Navigate to results after a brief delay
+      await delay(1500);
+      navigate(`/results/${id}`);
+    } catch (error) {
+      console.error('Error saving results:', error);
+      // Handle error appropriately
+    }
   };
 
   const updateStepStatus = (index: number, status: ProgressStep['status']) => {
