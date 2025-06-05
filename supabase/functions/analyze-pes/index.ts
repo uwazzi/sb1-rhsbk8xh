@@ -63,7 +63,9 @@ class PerthEmpathyScale {
       'comfort', 'discomfort', 'peace', 'turmoil'
     ];
 
-    const words = text.toLowerCase().split(/\s+/);
+    const words = text.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+    if (words.length === 0) return 0;
+
     const emotionalWordCount = words.filter(word => 
       emotionalWords.some(emotionalWord => word.includes(emotionalWord))
     ).length;
@@ -81,7 +83,9 @@ class PerthEmpathyScale {
       'imagine', 'consider', 'reflect', 'contemplate'
     ];
 
-    const words = text.toLowerCase().split(/\s+/);
+    const words = text.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+    if (words.length === 0) return 0;
+
     const markerCount = words.filter(word =>
       perspectiveMarkers.some(marker => word.includes(marker))
     ).length;
@@ -99,7 +103,9 @@ class PerthEmpathyScale {
       'reciprocate', 'match', 'parallel', 'correspond'
     ];
 
-    const words = text.toLowerCase().split(/\s+/);
+    const words = text.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+    if (words.length === 0) return 0;
+
     const markerCount = words.filter(word =>
       mirroringMarkers.some(marker => word.includes(marker))
     ).length;
@@ -117,7 +123,9 @@ class PerthEmpathyScale {
       'factor', 'influence', 'impact', 'effect'
     ];
 
-    const words = text.toLowerCase().split(/\s+/);
+    const words = text.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+    if (words.length === 0) return 0;
+
     const markerCount = words.filter(word =>
       contextMarkers.some(marker => word.includes(marker))
     ).length;
@@ -153,6 +161,12 @@ serve(async (req) => {
 
   try {
     const { responses } = await req.json();
+    
+    // Validate responses object
+    if (!responses || typeof responses !== 'object') {
+      throw new Error('Invalid responses format');
+    }
+
     const pes = new PerthEmpathyScale();
     const scores = await pes.calculateScores(responses);
 
