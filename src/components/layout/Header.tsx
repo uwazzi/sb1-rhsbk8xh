@@ -91,7 +91,7 @@ const Header: React.FC = () => {
           <div className="hidden items-center space-x-4 md:flex">
             {user ? (
               <>
-                <Link to="/dashboard" className="btn-primary">
+                <Link to="/dashboard\" className="btn-primary">
                   <BarChart2 className="mr-2 h-4 w-4" />
                   View Tests
                 </Link>
