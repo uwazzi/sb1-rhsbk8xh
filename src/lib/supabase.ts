@@ -68,3 +68,35 @@ export async function saveTestResults(testId: string, scores: any, summary: stri
 
   if (error) throw error;
 }
+
+export async function analyzeResponses(responses: Record<string, string>) {
+  try {
+    const { data, error } = await supabase.functions.invoke('analyze-pes', {
+      body: { responses },
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (error) {
+      console.error('Edge function error:', error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error('No data received from edge function');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to analyze responses:', error);
+    // Return default scores as fallback
+    return {
+      negativeCognitive: 0.5,
+      positiveCognitive: 0.5,
+      negativeAffective: 0.5,
+      positiveAffective: 0.5,
+      overall: 0.5
+    };
+  }
+}
