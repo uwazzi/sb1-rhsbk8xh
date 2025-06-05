@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { FastMCP } from "npm:fastmcp";
 
 interface EmpathyScores {
   negativeCognitive: number;
@@ -10,19 +9,12 @@ interface EmpathyScores {
 }
 
 class PerthEmpathyScale {
-  private mcp: FastMCP;
-
-  constructor() {
-    this.mcp = new FastMCP({
-      dimensions: ['negativeCognitive', 'positiveCognitive', 'negativeAffective', 'positiveAffective'],
-      scalingFactor: 100,
-      smoothingParameter: 0.5
-    });
-  }
-
   public async evaluateResponse(response: string, category: string): Promise<number> {
     const features = await this.extractFeatures(response);
-    return this.mcp.evaluate(features, category);
+    // Calculate the average of all features and scale to 0-100
+    const score = (features.reduce((a, b) => a + b, 0) / features.length) * 100;
+    // Ensure the score is between 0 and 100
+    return Math.min(Math.max(score, 0), 100);
   }
 
   public async calculateScores(responses: Record<string, string>): Promise<EmpathyScores> {
