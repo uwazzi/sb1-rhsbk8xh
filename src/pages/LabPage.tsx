@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Brain, MessageSquare, Bot, Loader2, ArrowRight } from 'lucide-react';
 import { mockConfigurations, pesQuestions } from '../data/mockData';
 import { getGeminiResponse } from '../lib/gemini';
-import { supabase } from '../lib/supabase';
+import { supabase, analyzeResponses } from '../lib/supabase';
 
 interface AgentMessage {
   role: 'agent' | 'ai';
