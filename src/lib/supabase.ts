@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -9,13 +10,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export async function createTestConfiguration(data: {
+interface CreateTestConfigurationData {
   name: string;
-  description: string;
+  description?: string;
   selectedTests: string[];
   systemPrompt?: string;
-}) {
-  // Get the current user's session
+  isPublic?: boolean;
+}
+
+export async function createTestConfiguration(data: CreateTestConfigurationData) {
   const { data: session } = await supabase.auth.getSession();
   
   if (!session?.session?.user) {
@@ -30,7 +33,8 @@ export async function createTestConfiguration(data: {
       selected_tests: data.selectedTests,
       system_prompt: data.systemPrompt,
       status: 'active',
-      user_id: session.session.user.id // Add the authenticated user's ID
+      is_public: data.isPublic ?? true,
+      user_id: session.session.user.id
     })
     .select()
     .single();
