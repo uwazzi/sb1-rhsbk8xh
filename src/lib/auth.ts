@@ -25,11 +25,13 @@ export async function signOut() {
   if (error) throw error;
 }
 
-export async function continueAsGuest() {
-  // Create an anonymous session with limited access
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: import.meta.env.VITE_GUEST_EMAIL,
-    password: import.meta.env.VITE_GUEST_PASSWORD,
+export async function continueAsGuest(email: string) {
+  // Sign in with OTP (magic link)
+  const { data, error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: window.location.origin + '/create',
+    }
   });
   
   if (error) throw error;

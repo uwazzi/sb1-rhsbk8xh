@@ -11,8 +11,11 @@ const AuthPage: React.FC = () => {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [showGuestInput, setShowGuestInput] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [guestMessage, setGuestMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,13 +38,25 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  const handleGuestAccess = async () => {
+  const handleGuestAccess = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    if (!showGuestInput) {
+      setShowGuestInput(true);
+      return;
+    }
+
+    if (!guestEmail) {
+      setError('Please enter your email address');
+      return;
+    }
+
     setError('');
     setLoading(true);
     try {
-      await continueAsGuest();
-      // Always redirect guests to the sanity check page
-      navigate('/create');
+      await continueAsGuest(guestEmail);
+      setGuestMessage('Check your email for the magic link to continue!');
+      setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Guest access failed');
     } finally {
@@ -65,6 +80,12 @@ const AuthPage: React.FC = () => {
           {error && (
             <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
               {error}
+            </div>
+          )}
+
+          {guestMessage && (
+            <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
+              {guestMessage}
             </div>
           )}
 
@@ -134,7 +155,37 @@ const AuthPage: React.FC = () => {
             </div>
           </div>
 
-          <div>
+          {showGuestInput ? (
+            <div>
+              <div className="mb-4">
+                <label htmlFor="guestEmail" className="sr-only">
+                  Email address
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Mail className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <input
+                    id="guestEmail"
+                    type="email"
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    className="block w-full rounded-md border-slate-300 pl-10 focus:border-violet-500 focus:ring-violet-500"
+                    placeholder="Enter your email to continue as guest"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleGuestAccess}
+                disabled={loading}
+                className="group relative flex w-full justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+              >
+                <Bot className="mr-2 h-5 w-5 text-slate-400" />
+                Send Magic Link
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
               onClick={handleGuestAccess}
@@ -144,7 +195,7 @@ const AuthPage: React.FC = () => {
               <Bot className="mr-2 h-5 w-5 text-slate-400" />
               Continue as Guest
             </button>
-          </div>
+          )}
         </form>
 
         <div className="text-center text-sm">
