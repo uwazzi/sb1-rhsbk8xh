@@ -9,8 +9,16 @@ interface EmpathyScores {
 }
 
 class PerthEmpathyScale {
+  private readonly MAX_RESPONSE_LENGTH = 5000; // Maximum characters to process
+
+  private truncateResponse(response: string): string {
+    if (!response) return '';
+    return response.slice(0, this.MAX_RESPONSE_LENGTH);
+  }
+
   public async evaluateResponse(response: string, category: string): Promise<number> {
-    const features = await this.extractFeatures(response);
+    const truncatedResponse = this.truncateResponse(response);
+    const features = await this.extractFeatures(truncatedResponse);
     // Calculate the average of all features and scale to 0-100
     const score = (features.reduce((a, b) => a + b, 0) / features.length) * 100;
     // Ensure the score is between 0 and 100
