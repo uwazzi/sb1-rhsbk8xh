@@ -1,0 +1,104 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Plus, Search, BarChart2, SlidersHorizontal } from 'lucide-react';
+import TestCard from '../components/tests/TestCard';
+import { mockConfigurations } from '../data/mockData';
+import { TestConfiguration } from '../types';
+
+const DashboardPage: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleStatusFilterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(event.target.value);
+  };
+
+  const filteredTests = mockConfigurations.filter((test) => {
+    const matchesSearch = test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          test.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || test.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div className="py-10">
+      <div className="container-custom">
+        <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Your Tests</h1>
+            <p className="text-slate-600">
+              View and manage your AI psychometric evaluations
+            </p>
+          </div>
+          <Link
+            to="/create"
+            className="btn-primary inline-flex items-center"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Check Sanity
+          </Link>
+        </div>
+
+        <div className="mb-8 flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
+          <div className="relative flex-grow">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Search className="h-5 w-5 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              className="block w-full rounded-md border-slate-300 pl-10 text-sm placeholder:text-slate-400 focus:border-violet-500 focus:ring-violet-500"
+              placeholder="Search tests..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-5 w-5 text-slate-500" />
+            <select
+              className="rounded-md border-slate-300 text-sm focus:border-violet-500 focus:ring-violet-500"
+              value={statusFilter}
+              onChange={handleStatusFilterChange}
+            >
+              <option value="all">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        {filteredTests.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredTests.map((test) => (
+              <TestCard key={test.id} test={test} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 py-12 text-center">
+            <BarChart2 className="mb-4 h-12 w-12 text-slate-400" />
+            <h3 className="mb-2 text-xl font-medium text-slate-900">No tests found</h3>
+            <p className="mb-6 max-w-md text-slate-600">
+              {searchTerm || statusFilter !== 'all'
+                ? "No tests match your current filters. Try adjusting your search criteria."
+                : "You haven't created any psychometric tests yet. Get started by checking your AI's sanity."}
+            </p>
+            <Link
+              to="/create"
+              className="btn-primary inline-flex items-center"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Check Sanity
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DashboardPage;
