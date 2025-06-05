@@ -49,20 +49,10 @@ const LabPage: React.FC = () => {
 
   const analyzeResponse = async (response: string, questionId: string) => {
     try {
-      const { data: analysis, error: functionError } = await supabase.functions.invoke('analyze-pes', {
-        body: { responses: { [questionId]: response } }
-      });
-
-      if (functionError) {
-        console.warn('Edge function error:', functionError);
-        // Fallback to default scoring if the edge function fails
-        return DEFAULT_SCORES;
-      }
-
-      return analysis;
+      const result = await analyzeResponses({ [questionId]: response });
+      return result;
     } catch (error) {
       console.error('Failed to analyze response:', error);
-      // Fallback to default scoring on any error
       return DEFAULT_SCORES;
     }
   };

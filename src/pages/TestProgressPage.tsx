@@ -78,15 +78,11 @@ const TestProgressPage: React.FC = () => {
       const responses = JSON.parse(localStorage.getItem(`test_${id}_responses`) || '{}');
       
       // Calculate scores using the Edge Function
-      const { data: scores, error } = await supabase.functions.invoke('analyze-pes', {
-        body: { responses }
-      });
-
-      if (error) throw error;
+      const scores = await analyzeResponses(responses);
       
       setAnalysis(scores);
       
-      // Generate a summary (you might want to enhance this)
+      // Generate a summary
       const summary = `Analysis complete with overall score of ${scores.overall}. Shows strengths in positive cognitive empathy.`;
       
       // Save results to Supabase
