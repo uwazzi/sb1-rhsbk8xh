@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Info, Brain, FileText, BarChart2, Bot, Lock, HelpCircle, Loader2, AlertCircle, Globe, Crown } from 'lucide-react';
 import { getGeminiResponse, testGeminiApiKey } from '../lib/gemini';
-import { createTestConfiguration } from '../lib/supabase';
+import { createTestConfiguration, supabase } from '../lib/supabase';
 
 const CheckSanityPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,7 +22,19 @@ const CheckSanityPage: React.FC = () => {
     description?: string;
     apiKey?: string;
     tests?: string;
+    auth?: string;
   }>({});
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login', { state: { returnTo: '/create' } });
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   const handleTestSelection = (testType: string) => {
     if (selectedTests.includes(testType)) {
@@ -88,6 +100,14 @@ const CheckSanityPage: React.FC = () => {
     setCreationStatus('creating');
 
     try {
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setFormErrors(prev => ({ ...prev, auth: 'You must be logged in to create a test configuration' }));
+        setCreationStatus('error');
+        return;
+      }
+
       const testConfig = await createTestConfiguration({
         name: testName,
         description: testDescription,
@@ -100,6 +120,12 @@ const CheckSanityPage: React.FC = () => {
     } catch (error) {
       console.error('Error creating test configuration:', error);
       setCreationStatus('error');
+      if (error instanceof Error) {
+        setFormErrors(prev => ({ 
+          ...prev, 
+          auth: error.message.includes('authenticated') ? error.message : 'Failed to create test configuration'
+        }));
+      }
     }
   };
 
@@ -169,6 +195,16 @@ const CheckSanityPage: React.FC = () => {
   return (
     <div className="py-10">
       <div className="container-custom">
+        {formErrors.auth && (
+          <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-700">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+              <div className="ml-3">
+                <p className="text-sm font-medium">{formErrors.auth}</p>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="grid gap-8 md:grid-cols-3">
           <div className="md:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-8">
