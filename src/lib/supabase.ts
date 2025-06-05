@@ -15,6 +15,13 @@ export async function createTestConfiguration(data: {
   selectedTests: string[];
   systemPrompt?: string;
 }) {
+  // Get the current user's session
+  const { data: session } = await supabase.auth.getSession();
+  
+  if (!session?.session?.user) {
+    throw new Error('User must be authenticated to create a test configuration');
+  }
+
   const { data: test, error } = await supabase
     .from('test_configurations')
     .insert({
@@ -22,7 +29,8 @@ export async function createTestConfiguration(data: {
       description: data.description,
       selected_tests: data.selectedTests,
       system_prompt: data.systemPrompt,
-      status: 'active'
+      status: 'active',
+      user_id: session.session.user.id // Add the authenticated user's ID
     })
     .select()
     .single();
