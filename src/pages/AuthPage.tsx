@@ -40,7 +40,8 @@ const AuthPage: React.FC = () => {
     setLoading(true);
     try {
       await continueAsGuest();
-      navigate(returnTo);
+      // Always redirect guests to the sanity check page
+      navigate('/create');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Guest access failed');
     } finally {
