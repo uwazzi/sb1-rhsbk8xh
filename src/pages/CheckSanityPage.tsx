@@ -61,6 +61,8 @@ const CheckSanityPage: React.FC = () => {
       if (isValid) {
         setConnectionStatus('success');
         setFormErrors(prev => ({ ...prev, apiKey: undefined }));
+        // Store the API key for later use
+        window.localStorage.setItem('VITE_GEMINI_API_KEY', geminiApiKey);
       } else {
         setConnectionStatus('error');
         setFormErrors(prev => ({ ...prev, apiKey: 'Invalid API key' }));
@@ -116,7 +118,8 @@ const CheckSanityPage: React.FC = () => {
       });
 
       setCreationStatus('success');
-      navigate(`/test/${testConfig.id}`);
+      // Redirect to the lab page instead of test execution
+      navigate(`/lab/${testConfig.id}`);
     } catch (error) {
       console.error('Error creating test configuration:', error);
       setCreationStatus('error');
