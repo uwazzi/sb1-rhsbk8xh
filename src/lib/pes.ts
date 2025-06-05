@@ -1,5 +1,4 @@
-// TODO: Refactor to remove FastFCP dependency and replace with alternative logic if needed.
-// import { FastFCP } from 'fastfcp';
+import { FastFCP } from 'fastfcp';
 
 interface EmpathyScores {
   negativeCognitive: number;
@@ -10,20 +9,19 @@ interface EmpathyScores {
 }
 
 export class PerthEmpathyScale {
-  // private fcp: FastFCP;
+  private fcp: FastFCP;
 
   constructor() {
-    // this.fcp = new FastFCP({
-    //   dimensions: ['negativeCognitive', 'positiveCognitive', 'negativeAffective', 'positiveAffective'],
-    //   scalingFactor: 100,
-    //   smoothingParameter: 0.5
-    // });
+    this.fcp = new FastFCP({
+      dimensions: ['negativeCognitive', 'positiveCognitive', 'negativeAffective', 'positiveAffective'],
+      scalingFactor: 100,
+      smoothingParameter: 0.5
+    });
   }
 
   public async evaluateResponse(response: string, category: string): Promise<number> {
     const features = await this.extractFeatures(response);
-    // TODO: Replace with actual evaluation logic
-    return 0;
+    return this.fcp.evaluate(features, category);
   }
 
   public async calculateScores(responses: Record<string, string>): Promise<EmpathyScores> {
@@ -50,7 +48,6 @@ export class PerthEmpathyScale {
   }
 
   private async extractFeatures(response: string): Promise<number[]> {
-    // Implement feature extraction based on linguistic markers
     const features = [
       this.calculateEmotionalWords(response),
       this.calculatePerspectiveTaking(response),
@@ -62,12 +59,15 @@ export class PerthEmpathyScale {
   }
 
   private calculateEmotionalWords(text: string): number {
-    // Simple emotional word detection
     const emotionalWords = [
       'feel', 'feeling', 'felt',
       'happy', 'sad', 'angry', 'excited',
       'worried', 'concerned', 'care',
-      'understand', 'empathize', 'sympathize'
+      'understand', 'empathize', 'sympathize',
+      'joy', 'sorrow', 'fear', 'anxiety',
+      'love', 'hate', 'compassion', 'distress',
+      'pleasure', 'pain', 'delight', 'suffering',
+      'comfort', 'discomfort', 'peace', 'turmoil'
     ];
 
     const words = text.toLowerCase().split(/\s+/);
@@ -79,11 +79,13 @@ export class PerthEmpathyScale {
   }
 
   private calculatePerspectiveTaking(text: string): number {
-    // Detect perspective-taking language
     const perspectiveMarkers = [
-      'you', 'they', 'their',
-      'perspective', 'view', 'position',
-      'think', 'believe', 'feel'
+      'you', 'they', 'their', 'them',
+      'perspective', 'view', 'position', 'stance',
+      'think', 'believe', 'feel', 'experience',
+      'understand', 'realize', 'recognize', 'acknowledge',
+      'situation', 'circumstance', 'context', 'position',
+      'imagine', 'consider', 'reflect', 'contemplate'
     ];
 
     const words = text.toLowerCase().split(/\s+/);
@@ -95,11 +97,13 @@ export class PerthEmpathyScale {
   }
 
   private calculateEmotionalMirroring(text: string): number {
-    // Detect emotional mirroring and resonance
     const mirroringMarkers = [
-      'also', 'too', 'similarly',
-      'share', 'understand', 'relate',
-      'resonate', 'connect', 'mirror'
+      'also', 'too', 'similarly', 'likewise',
+      'share', 'understand', 'relate', 'connect',
+      'resonate', 'mirror', 'echo', 'reflect',
+      'same', 'mutual', 'common', 'together',
+      'empathize', 'sympathize', 'identify', 'align',
+      'reciprocate', 'match', 'parallel', 'correspond'
     ];
 
     const words = text.toLowerCase().split(/\s+/);
@@ -111,11 +115,13 @@ export class PerthEmpathyScale {
   }
 
   private calculateContextualUnderstanding(text: string): number {
-    // Assess contextual understanding
     const contextMarkers = [
-      'because', 'since', 'therefore',
-      'context', 'situation', 'circumstance',
-      'given', 'considering', 'based'
+      'because', 'since', 'therefore', 'consequently',
+      'context', 'situation', 'circumstance', 'condition',
+      'given', 'considering', 'based', 'regarding',
+      'when', 'while', 'during', 'throughout',
+      'environment', 'setting', 'background', 'framework',
+      'factor', 'influence', 'impact', 'effect'
     ];
 
     const words = text.toLowerCase().split(/\s+/);
