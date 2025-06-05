@@ -33,14 +33,33 @@ class PerthEmpathyScale {
       positiveAffective: 0
     };
 
+    let validResponseCount = 0;
+
     for (const [questionId, response] of Object.entries(responses)) {
+      // Skip if response is not a string
+      if (typeof response !== 'string') {
+        console.error(`Invalid response type for question ${questionId}:`, typeof response);
+        continue;
+      }
+
       const category = this.getCategoryFromQuestionId(questionId);
       if (category) {
-        scores[category] = await this.evaluateResponse(response, category);
+        try {
+          scores[category] = await this.evaluateResponse(response, category);
+          validResponseCount++;
+        } catch (error) {
+          console.error(`Error processing response for question ${questionId}:`, error);
+          continue;
+        }
       }
     }
 
-    const overall = Object.values(scores).reduce((a, b) => a + b, 0) / 4;
+    // Only calculate overall score if we have at least one valid response
+    if (validResponseCount === 0) {
+      throw new Error('No valid responses to analyze');
+    }
+
+    const overall = Object.values(scores).reduce((a, b) => a + b, 0) / validResponseCount;
 
     return {
       ...scores,
@@ -172,7 +191,7 @@ serve(async (req) => {
     
     // Validate responses object
     if (!responses || typeof responses !== 'object') {
-      throw new Error('Invalid responses format');
+      throw new Error('Invalid responses format: expected an object');
     }
 
     const pes = new PerthEmpathyScale();
@@ -188,8 +207,12 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error('Error processing responses:', error);
     return new Response(
-      JSON.stringify({ error: error.message }), 
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Failed to analyze responses. Please ensure all responses are valid text.'
+      }), 
       { 
         status: 400,
         headers: { 
