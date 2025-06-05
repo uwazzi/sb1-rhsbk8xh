@@ -9,10 +9,12 @@ import TestProgressPage from './pages/TestProgressPage';
 import ResultsPage from './pages/ResultsPage';
 import DocumentationPage from './pages/DocumentationPage';
 import NotFoundPage from './pages/NotFoundPage';
+import AuthPage from './pages/AuthPage';
 
 function App() {
   return (
     <Routes>
+      <Route path="/login" element={<AuthPage />} />
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="dashboard" element={<DashboardPage />} />

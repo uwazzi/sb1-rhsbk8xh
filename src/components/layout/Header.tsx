@@ -1,35 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Brain, BarChart2 } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Brain, BarChart2, User, LogOut } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { signOut } from '../../lib/auth';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const location = useLocation();
-
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
 
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    // Close mobile menu when changing routes
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
     setIsMenuOpen(false);
   }, [location]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -38,9 +48,7 @@ const Header: React.FC = () => {
     { name: 'Documentation', path: '/documentation' },
   ];
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <header
@@ -80,17 +88,33 @@ const Header: React.FC = () => {
             </ul>
           </nav>
 
-          <div className="hidden md:block">
-            <Link to="/dashboard" className="btn-primary">
-              <BarChart2 className="mr-2 h-4 w-4" />
-              View Tests
-            </Link>
+          <div className="hidden items-center space-x-4 md:flex">
+            {user ? (
+              <>
+                <Link to="/dashboard" className="btn-primary">
+                  <BarChart2 className="mr-2 h-4 w-4" />
+                  View Tests
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-900"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <Link to="/login" className="btn-primary">
+                <User className="mr-2 h-4 w-4" />
+                Sign In
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
           <button
             className="text-slate-700 md:hidden"
-            onClick={toggleMenu}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle menu"
           >
             {isMenuOpen ? (
@@ -119,13 +143,32 @@ const Header: React.FC = () => {
                 {link.name}
               </Link>
             ))}
-            <Link
-              to="/dashboard"
-              className="mt-2 inline-flex items-center justify-center rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
-            >
-              <BarChart2 className="mr-2 h-4 w-4" />
-              View Tests
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  to="/dashboard"
+                  className="mt-2 inline-flex items-center justify-center rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+                >
+                  <BarChart2 className="mr-2 h-4 w-4" />
+                  View Tests
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium text-slate-600 hover:text-slate-900"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="mt-2 inline-flex items-center justify-center rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+              >
+                <User className="mr-2 h-4 w-4" />
+                Sign In
+              </Link>
+            )}
           </nav>
         </div>
       )}
