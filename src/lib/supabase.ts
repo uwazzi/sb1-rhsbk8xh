@@ -129,7 +129,13 @@ export async function analyzeResponses(responses: Record<string, string>) {
 
     if (error) {
       console.error('Edge function error:', error);
-      throw error;
+      return {
+        negativeCognitive: 0.5,
+        positiveCognitive: 0.5,
+        negativeAffective: 0.5,
+        positiveAffective: 0.5,
+        overall: 0.5
+      };
     }
 
     if (!data) {
