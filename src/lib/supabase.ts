@@ -5,10 +5,34 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+  console.warn('Supabase environment variables are not configured. Some features may not work properly.');
+  console.warn('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create a mock client if environment variables are missing
+const createMockClient = () => ({
+  auth: {
+    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    signUp: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+    signInWithPassword: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+    signOut: () => Promise.resolve({ error: new Error('Supabase not configured') }),
+    signInWithOtp: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+    resetPasswordForEmail: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+    updateUser: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
+  },
+  from: () => ({
+    insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }) }),
+    select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [], error: new Error('Supabase not configured') }) }) })
+  }),
+  functions: {
+    invoke: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
+  }
+});
+
+export const supabase = (supabaseUrl && supabaseAnonKey) 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createMockClient();
 
 interface CreateTestConfigurationData {
   name: string;
@@ -19,6 +43,10 @@ interface CreateTestConfigurationData {
 }
 
 export async function createTestConfiguration(data: CreateTestConfigurationData) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured. Please set up your environment variables.');
+  }
+
   const { data: session } = await supabase.auth.getSession();
   
   if (!session?.session?.user) {
@@ -44,6 +72,11 @@ export async function createTestConfiguration(data: CreateTestConfigurationData)
 }
 
 export async function saveTestResponses(testId: string, responses: Record<string, string>) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase not configured, responses will not be saved');
+    return;
+  }
+
   const responsesArray = Object.entries(responses).map(([questionId, response]) => ({
     test_id: testId,
     question_id: questionId,
@@ -58,6 +91,11 @@ export async function saveTestResponses(testId: string, responses: Record<string
 }
 
 export async function saveTestResults(testId: string, scores: any, summary: string) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase not configured, results will not be saved');
+    return;
+  }
+
   const { error } = await supabase
     .from('test_results')
     .insert({
@@ -70,6 +108,17 @@ export async function saveTestResults(testId: string, scores: any, summary: stri
 }
 
 export async function analyzeResponses(responses: Record<string, string>) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase not configured, using fallback analysis');
+    return {
+      negativeCognitive: 0.5,
+      positiveCognitive: 0.5,
+      negativeAffective: 0.5,
+      positiveAffective: 0.5,
+      overall: 0.5
+    };
+  }
+
   try {
     const { data, error } = await supabase.functions.invoke('analyze-pes', {
       body: { responses },
