@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, Mail, User, Bot, KeyRound } from 'lucide-react';
+import { Lock, Mail, User, Bot, KeyRound, AlertCircle } from 'lucide-react';
 import { signIn, signUp, continueAsGuest, resetPassword } from '../lib/auth';
 import GuestWizard from '../components/wizard/GuestWizard';
 
@@ -8,6 +8,7 @@ const AuthPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const returnTo = (location.state as any)?.returnTo || '/';
+  const successMessage = (location.state as any)?.message;
 
   const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
   const [email, setEmail] = useState('');
@@ -19,6 +20,13 @@ const AuthPage: React.FC = () => {
   const [guestMessage, setGuestMessage] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const [showWizard, setShowWizard] = useState(false);
+
+  // Show success message if redirected from password reset
+  useEffect(() => {
+    if (successMessage) {
+      setResetMessage(successMessage);
+    }
+  }, [successMessage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,8 +123,13 @@ const AuthPage: React.FC = () => {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
-              {error}
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              </div>
             </div>
           )}
 
