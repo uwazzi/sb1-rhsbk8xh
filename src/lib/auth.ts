@@ -26,10 +26,15 @@ export async function signOut() {
 }
 
 export async function continueAsGuest(email: string) {
+  // Use the deployed domain for email redirects
+  const redirectUrl = window.location.hostname === 'localhost' 
+    ? window.location.origin + '/create'
+    : 'https://friendly-melomakarona-419814.netlify.app/create';
+
   const { data, error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: window.location.origin + '/create',
+      emailRedirectTo: redirectUrl,
     }
   });
   
@@ -38,8 +43,13 @@ export async function continueAsGuest(email: string) {
 }
 
 export async function resetPassword(email: string) {
+  // Use the deployed domain for password reset redirects
+  const redirectUrl = window.location.hostname === 'localhost'
+    ? window.location.origin + '/reset-password'
+    : 'https://friendly-melomakarona-419814.netlify.app/reset-password';
+
   const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + '/reset-password',
+    redirectTo: redirectUrl,
   });
   
   if (error) throw error;
