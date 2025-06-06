@@ -68,7 +68,20 @@ export async function createTestConfiguration(data: CreateTestConfigurationData)
     .single();
 
   if (error) throw error;
-  return test;
+  
+  // Transform the response to match our interface
+  return {
+    id: test.id,
+    userId: test.user_id,
+    name: test.name,
+    description: test.description,
+    tests: test.selected_tests,
+    aiSystemPrompt: test.system_prompt, // Map system_prompt to aiSystemPrompt
+    status: test.status,
+    createdAt: new Date(test.created_at),
+    updatedAt: new Date(test.updated_at),
+    isPublic: test.is_public
+  };
 }
 
 export async function saveTestResponses(testId: string, responses: Record<string, string>) {

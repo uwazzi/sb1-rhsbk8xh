@@ -40,8 +40,10 @@ const LabPage: React.FC = () => {
       if (foundTest) {
         setTest(foundTest);
         // Load the custom prompt from the test configuration
-        if (foundTest.aiSystemPrompt) {
-          setCustomPrompt(foundTest.aiSystemPrompt);
+        // Check both possible property names for compatibility
+        const prompt = foundTest.aiSystemPrompt || foundTest.systemPrompt || '';
+        if (prompt) {
+          setCustomPrompt(prompt);
         }
       }
     }
@@ -524,6 +526,22 @@ const LabPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Performance Insights */}
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Average Response Time</span>
+                    <span className="font-medium text-slate-900">
+                      {responseTime ? `${responseTime}ms` : 'Calculating...'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Total Tokens Used</span>
+                    <span className="font-medium text-slate-900">
+                      {totalTokens.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-lg bg-white p-6 shadow-sm">
@@ -542,22 +560,6 @@ const LabPage: React.FC = () => {
                         width: `${((currentQuestion + 1) / pesQuestions.length) * 100}%`
                       }}
                     ></div>
-                  </div>
-                </div>
-
-                {/* Performance Insights */}
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Average Response Time</span>
-                    <span className="font-medium text-slate-900">
-                      {responseTime ? `${responseTime}ms` : 'Calculating...'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Total Tokens Used</span>
-                    <span className="font-medium text-slate-900">
-                      {totalTokens.toLocaleString()}
-                    </span>
                   </div>
                 </div>
               </div>
