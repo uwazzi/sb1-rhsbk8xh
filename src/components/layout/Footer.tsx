@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, Github, Twitter } from 'lucide-react';
+import { Brain, Github, Twitter, Zap } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
@@ -15,6 +15,20 @@ const Footer: React.FC = () => {
             <p className="mt-4 text-sm">
               Advanced psychological evaluation for AI agents and large language models.
             </p>
+            
+            {/* Built with Bolt Badge */}
+            <div className="mt-6">
+              <a
+                href="https://bolt.new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all hover:from-violet-700 hover:to-purple-700 hover:shadow-xl"
+              >
+                <Zap className="mr-2 h-4 w-4" />
+                Built with Bolt
+              </a>
+            </div>
+            
             <div className="mt-6 flex space-x-4">
               <a
                 href="#"
@@ -126,8 +140,22 @@ const Footer: React.FC = () => {
             </ul>
           </div>
         </div>
-        <div className="mt-12 border-t border-slate-800 pt-8 text-center text-sm text-slate-400">
-          <p>© {new Date().getFullYear()} AI Sanity Check. All rights reserved.</p>
+        <div className="mt-12 border-t border-slate-800 pt-8">
+          <div className="flex flex-col items-center justify-between space-y-4 text-center text-sm text-slate-400 md:flex-row md:space-y-0">
+            <p>© {new Date().getFullYear()} AI Sanity Check. All rights reserved.</p>
+            <div className="flex items-center space-x-4">
+              <span className="text-slate-500">Powered by</span>
+              <a
+                href="https://bolt.new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-md bg-slate-800 px-3 py-1 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+              >
+                <Zap className="mr-1 h-3 w-3" />
+                Bolt
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
