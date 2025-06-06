@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Brain, BarChart2, User, LogOut } from 'lucide-react';
+import { Menu, X, Brain, BarChart2, User, LogOut, ExternalLink } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { signOut } from '../../lib/auth';
 
@@ -58,7 +58,7 @@ const Header: React.FC = () => {
     >
       <div className="container-custom">
         <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center">
+          <div className="flex items-center space-x-6">
             <Link
               to="/"
               className="flex items-center space-x-2 text-xl font-bold text-slate-900"
@@ -66,6 +66,17 @@ const Header: React.FC = () => {
               <Brain className="h-8 w-8 text-violet-600" />
               <span>AI Sanity Check</span>
             </Link>
+
+            {/* HG Labs Badge */}
+            <a
+              href="https://hg-labs.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden items-center rounded-lg bg-gradient-to-r from-slate-800 to-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg transition-all hover:from-slate-900 hover:to-black hover:shadow-xl md:inline-flex"
+            >
+              <ExternalLink className="mr-1.5 h-3 w-3" />
+              Powered by HG Labs
+            </a>
           </div>
 
           {/* Desktop Navigation */}
@@ -91,7 +102,7 @@ const Header: React.FC = () => {
           <div className="hidden items-center space-x-4 md:flex">
             {user ? (
               <>
-                <Link to="/dashboard\" className="btn-primary">
+                <Link to="/dashboard" className="btn-primary">
                   <BarChart2 className="mr-2 h-4 w-4" />
                   View Tests
                 </Link>
@@ -143,6 +154,18 @@ const Header: React.FC = () => {
                 {link.name}
               </Link>
             ))}
+            
+            {/* Mobile HG Labs Badge */}
+            <a
+              href="https://hg-labs.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all hover:from-slate-900 hover:to-black"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Powered by HG Labs
+            </a>
+
             {user ? (
               <>
                 <Link
