@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, Mail, User, Bot, KeyRound } from 'lucide-react';
 import { signIn, signUp, continueAsGuest, resetPassword } from '../lib/auth';
+import GuestWizard from '../components/wizard/GuestWizard';
 
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const AuthPage: React.FC = () => {
   const [error, setError] = useState('');
   const [guestMessage, setGuestMessage] = useState('');
   const [resetMessage, setResetMessage] = useState('');
+  const [showWizard, setShowWizard] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +59,30 @@ const AuthPage: React.FC = () => {
     }
 
     setError('');
+    setLoading(true);
+    try {
+      // Check if user has already completed the wizard
+      const wizardCompleted = localStorage.getItem('guest_wizard_completed');
+      
+      if (!wizardCompleted) {
+        // Show wizard first
+        setShowWizard(true);
+        setLoading(false);
+        return;
+      }
+
+      await continueAsGuest(guestEmail);
+      setGuestMessage('Check your email for the magic link to continue!');
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Guest access failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWizardComplete = async () => {
+    setShowWizard(false);
     setLoading(true);
     try {
       await continueAsGuest(guestEmail);
@@ -275,6 +301,13 @@ const AuthPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <GuestWizard
+        isOpen={showWizard}
+        onClose={() => setShowWizard(false)}
+        userEmail={guestEmail}
+        onComplete={handleWizardComplete}
+      />
     </div>
   );
 };

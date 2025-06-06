@@ -155,3 +155,55 @@ export async function analyzeResponses(responses: Record<string, string>) {
     };
   }
 }
+
+// Guest profile functions
+export async function createGuestProfile(profile: {
+  email: string;
+  fullName: string;
+  company: string;
+  position: string;
+  interestLevel: string;
+  howHeardAbout: string;
+  additionalNotes?: string;
+}) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase not configured, guest profile will not be saved');
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from('guest_profiles')
+    .insert({
+      email: profile.email,
+      full_name: profile.fullName,
+      company: profile.company,
+      position: profile.position,
+      interest_level: profile.interestLevel,
+      how_heard_about: profile.howHeardAbout,
+      additional_notes: profile.additionalNotes || ''
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getGuestProfile(email: string) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('guest_profiles')
+    .select('*')
+    .eq('email', email)
+    .single();
+
+  if (error) {
+    console.error('Error fetching guest profile:', error);
+    return null;
+  }
+
+  return data;
+}
