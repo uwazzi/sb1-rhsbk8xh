@@ -15,7 +15,7 @@ const HomePage: React.FC = () => {
                 
               </div>
               <h1 className="mb-6 text-4xl font-bold leading-tight md:text-5xl">
-                Turn the Tables: Psychologically Evaluate AI Systems
+                Flip the script: Psychologically Evaluate AI Systems
               </h1>
               <p className="mb-8 text-lg text-slate-200 md:text-xl">
                 After decades of algorithmic profiling of humans, it's time for AI to undergo the same rigorous psychological assessment. Ensure your AI systems meet the same standards we're held to.
