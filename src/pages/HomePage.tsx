@@ -12,10 +12,10 @@ const HomePage: React.FC = () => {
             <div className="fade-in">
               <div className="mb-4 inline-flex items-center rounded-full bg-violet-800/30 px-4 py-2 text-sm backdrop-blur-sm">
                 <Scale className="mr-2 h-4 w-4" />
-                
+                Flip the script
               </div>
               <h1 className="mb-6 text-4xl font-bold leading-tight md:text-5xl">
-                Flip the script: Psychologically Evaluate AI Systems
+                Psychologically Evaluate AI Systems
               </h1>
               <p className="mb-8 text-lg text-slate-200 md:text-xl">
                 After decades of algorithmic profiling of humans, it's time for AI to undergo the same rigorous psychological assessment. Ensure your AI systems meet the same standards we're held to.
