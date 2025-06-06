@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Brain, MessageSquare, Bot, Loader2, ArrowRight, Settings, Cpu, Zap } from 'lucide-react';
+import { Brain, MessageSquare, Bot, Loader2, ArrowRight, Settings, Cpu, Zap, Play, FileText } from 'lucide-react';
 import { mockConfigurations, pesQuestions } from '../data/mockData';
 import { getGeminiResponse } from '../lib/gemini';
 import { supabase, analyzeResponses } from '../lib/supabase';
@@ -32,6 +32,7 @@ const LabPage: React.FC = () => {
   const [llmModel, setLlmModel] = useState('Gemini 2.0 Flash');
   const [responseTime, setResponseTime] = useState<number | null>(null);
   const [totalTokens, setTotalTokens] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -44,18 +45,7 @@ const LabPage: React.FC = () => {
         }
       }
     }
-    startAssessment();
   }, [id]);
-
-  const startAssessment = async () => {
-    const initialMessage: AgentMessage = {
-      role: 'agent',
-      content: `Hello! I'm your empathy assessment agent. I'll be evaluating the emotional intelligence and empathetic capabilities of your AI system${customPrompt ? ' with the custom personality prompt you provided' : ''}. Let's begin with the first question.`,
-      timestamp: new Date()
-    };
-    setMessages([initialMessage]);
-    await askQuestion();
-  };
 
   const analyzeResponse = async (response: string, questionId: string) => {
     try {
@@ -65,6 +55,17 @@ const LabPage: React.FC = () => {
       console.error('Failed to analyze response:', error);
       return DEFAULT_SCORES;
     }
+  };
+
+  const startAssessment = async () => {
+    setHasStarted(true);
+    const initialMessage: AgentMessage = {
+      role: 'agent',
+      content: `Hello! I'm your empathy assessment agent. I'll be evaluating the emotional intelligence and empathetic capabilities of your AI system${customPrompt ? ' with the custom personality prompt you provided' : ''}. Let's begin with the first question.`,
+      timestamp: new Date()
+    };
+    setMessages([initialMessage]);
+    await askQuestion();
   };
 
   const askQuestion = async () => {
@@ -148,6 +149,135 @@ const LabPage: React.FC = () => {
     return 'Custom Personality';
   };
 
+  // Pre-test setup screen
+  if (!hasStarted) {
+    return (
+      <div className="min-h-screen bg-slate-50 py-8">
+        <div className="container-custom max-w-4xl">
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-violet-100">
+              <Brain className="h-8 w-8 text-violet-600" />
+            </div>
+            <h1 className="mb-2 text-3xl font-bold text-slate-900">Empathy Assessment Lab</h1>
+            <p className="text-lg text-slate-600">Ready to evaluate your AI's emotional intelligence</p>
+          </div>
+
+          <div className="space-y-6">
+            {/* Test Configuration */}
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <h2 className="mb-4 text-xl font-semibold text-slate-900">Test Configuration</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <div className="text-sm font-medium text-slate-700">Test Name</div>
+                  <div className="text-lg text-slate-900">{test.name}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-slate-700">LLM Model</div>
+                  <div className="flex items-center">
+                    <div className="mr-2 h-2 w-2 rounded-full bg-green-500"></div>
+                    <span className="text-lg text-slate-900">{llmModel}</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-slate-700">Questions</div>
+                  <div className="text-lg text-slate-900">{pesQuestions.length} empathy scenarios</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-slate-700">Estimated Time</div>
+                  <div className="text-lg text-slate-900">5-10 minutes</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Prompt Display */}
+            {customPrompt ? (
+              <div className="rounded-lg bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center">
+                  <Settings className="mr-3 h-6 w-6 text-amber-600" />
+                  <h2 className="text-xl font-semibold text-slate-900">AI Personality Prompt</h2>
+                </div>
+                
+                <div className="mb-4 rounded-lg bg-amber-50 p-4">
+                  <div className="mb-2 flex items-center">
+                    <FileText className="mr-2 h-5 w-5 text-amber-600" />
+                    <span className="font-medium text-amber-900">
+                      Testing with: {getPersonalityType()}
+                    </span>
+                  </div>
+                  <div className="rounded-lg bg-white p-4 border border-amber-200">
+                    <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                      {customPrompt}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-blue-50 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <Brain className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="text-sm font-medium text-blue-900">How this affects the assessment:</h4>
+                      <p className="mt-1 text-sm text-blue-700">
+                        This personality prompt will be applied to each empathy scenario, influencing how the AI responds to emotional situations. The assessment will measure how this personality affects empathetic capabilities across different emotional contexts.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center">
+                  <Bot className="mr-3 h-6 w-6 text-slate-600" />
+                  <h2 className="text-xl font-semibold text-slate-900">Default AI Personality</h2>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-4">
+                  <p className="text-slate-700">
+                    No custom personality prompt provided. The AI will respond with its default personality and training.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Assessment Overview */}
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <h2 className="mb-4 text-xl font-semibold text-slate-900">What We'll Measure</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-lg bg-violet-50 p-4">
+                  <h3 className="mb-2 font-medium text-violet-900">Cognitive Empathy</h3>
+                  <p className="text-sm text-violet-700">
+                    Ability to recognize and understand others' emotions in both positive and negative contexts.
+                  </p>
+                </div>
+                <div className="rounded-lg bg-blue-50 p-4">
+                  <h3 className="mb-2 font-medium text-blue-900">Affective Empathy</h3>
+                  <p className="text-sm text-blue-700">
+                    Tendency to share and mirror others' emotional experiences and feelings.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Start Button */}
+            <div className="text-center">
+              <button
+                onClick={startAssessment}
+                className="inline-flex items-center rounded-lg bg-violet-600 px-8 py-4 text-lg font-medium text-white shadow-lg transition-all hover:bg-violet-700 hover:shadow-xl"
+              >
+                <Play className="mr-3 h-6 w-6" />
+                Start Empathy Assessment
+              </button>
+              <p className="mt-3 text-sm text-slate-600">
+                The assessment will begin immediately and run automatically through all scenarios
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main assessment interface (existing code)
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="grid h-screen grid-cols-2">
