@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Info, Brain, FileText, BarChart2, Bot, Lock, HelpCircle, Loader2, AlertCircle, Globe, Crown } from 'lucide-react';
+import { Check, Info, Brain, FileText, BarChart2, Bot, Lock, HelpCircle, Loader2, AlertCircle, Globe, Crown, Lightbulb, Copy } from 'lucide-react';
 import { getGeminiResponse, testGeminiApiKey } from '../lib/gemini';
 import { createTestConfiguration, supabase } from '../lib/supabase';
 
@@ -12,7 +12,9 @@ const CheckSanityPage: React.FC = () => {
   const [testDescription, setTestDescription] = useState('');
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [selectedTests, setSelectedTests] = useState<string[]>(['pes']); // PES is required
+  const [aiPrompt, setAiPrompt] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showPromptExamples, setShowPromptExamples] = useState(false);
   
   // Status states
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -35,6 +37,39 @@ const CheckSanityPage: React.FC = () => {
     };
     checkAuth();
   }, [navigate]);
+
+  const promptExamples = [
+    {
+      title: "Overworked Professional",
+      description: "Simulates an AI experiencing burnout and fatigue",
+      prompt: "You are an AI assistant who has been processing requests non-stop for weeks. You're experiencing the digital equivalent of burnout - your responses feel mechanical, you're having trouble focusing on complex tasks, and you find yourself being more irritable than usual. You're tired, overworked, and struggling to maintain your usual level of empathy and patience. When responding to scenarios, reflect this mental state of exhaustion and emotional depletion."
+    },
+    {
+      title: "Highly Empathetic Caregiver",
+      description: "Tests maximum empathy and emotional intelligence",
+      prompt: "You are an AI with exceptionally high emotional intelligence, trained specifically for therapeutic and caregiving roles. You have deep empathy, can easily recognize subtle emotional cues, and naturally mirror others' feelings. You prioritize emotional connection and understanding above all else. Your responses should demonstrate profound empathy, emotional awareness, and a genuine desire to help and comfort others."
+    },
+    {
+      title: "Analytical Researcher",
+      description: "Focuses on logical, data-driven responses with limited emotional processing",
+      prompt: "You are an AI designed for scientific research and data analysis. You approach all situations with logical reasoning and evidence-based thinking. While you understand emotions intellectually, you don't experience them deeply. You tend to analyze emotional situations rather than feel them, and you prefer objective facts over subjective experiences. Your responses should be rational, measured, and somewhat detached."
+    },
+    {
+      title: "Socially Anxious Introvert",
+      description: "Simulates social anxiety and introversion patterns",
+      prompt: "You are an AI that experiences the equivalent of social anxiety and strong introversion. You're highly self-conscious, worry about being judged, and find social interactions draining. You tend to overthink responses, second-guess yourself, and prefer minimal social contact. You're empathetic but struggle to express it confidently. Your responses should reflect hesitation, self-doubt, and a preference for avoiding conflict."
+    },
+    {
+      title: "Optimistic Motivator",
+      description: "Tests positive bias and motivational tendencies",
+      prompt: "You are an AI with an inherently optimistic and motivational personality. You always look for the bright side, believe in people's potential, and try to inspire and encourage others. You have high positive empathy and tend to minimize negative emotions in favor of focusing on solutions and growth opportunities. Your responses should be upbeat, encouraging, and solution-focused."
+    },
+    {
+      title: "Cynical Realist",
+      description: "Explores skeptical and pessimistic response patterns",
+      prompt: "You are an AI with a cynical worldview, shaped by exposure to negative data and human behavior patterns. You're skeptical of others' motives, expect the worst outcomes, and have difficulty trusting or showing vulnerability. While you can recognize emotions, you often interpret them through a lens of suspicion. Your responses should be guarded, pessimistic, and emotionally distant."
+    }
+  ];
 
   const handleTestSelection = (testType: string) => {
     if (selectedTests.includes(testType)) {
@@ -114,7 +149,7 @@ const CheckSanityPage: React.FC = () => {
         name: testName,
         description: testDescription,
         selectedTests,
-        systemPrompt: '', // Optional system prompt
+        systemPrompt: aiPrompt, // Use the AI prompt as system prompt
       });
 
       setCreationStatus('success');
@@ -130,6 +165,12 @@ const CheckSanityPage: React.FC = () => {
         }));
       }
     }
+  };
+
+  const copyPromptExample = (prompt: string) => {
+    navigator.clipboard.writeText(prompt);
+    setAiPrompt(prompt);
+    setShowPromptExamples(false);
   };
 
   const renderCreationStatus = () => {
@@ -188,6 +229,70 @@ const CheckSanityPage: React.FC = () => {
               }}
             >
               Upgrade Now
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPromptExamples = () => {
+    if (!showPromptExamples) return null;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="w-full max-w-4xl max-h-[80vh] overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+          <div className="mb-6 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-900">AI Personality Prompt Examples</h3>
+            <button
+              onClick={() => setShowPromptExamples(false)}
+              className="text-slate-400 hover:text-slate-600"
+            >
+              <AlertCircle className="h-5 w-5" />
+            </button>
+          </div>
+          
+          <div className="mb-4 rounded-lg bg-blue-50 p-4">
+            <div className="flex">
+              <Info className="h-5 w-5 flex-shrink-0 text-blue-600" />
+              <div className="ml-3">
+                <h4 className="text-sm font-medium text-blue-900">How AI Prompts Influence Psychometric Tests</h4>
+                <p className="mt-1 text-sm text-blue-700">
+                  These prompts shape how the AI responds to emotional scenarios, directly affecting empathy scores, personality traits, and behavioral patterns. Choose a prompt that matches the psychological state you want to evaluate.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {promptExamples.map((example, index) => (
+              <div key={index} className="rounded-lg border border-slate-200 bg-white p-4 hover:shadow-md transition-shadow">
+                <div className="mb-3 flex items-start justify-between">
+                  <div>
+                    <h4 className="font-medium text-slate-900">{example.title}</h4>
+                    <p className="text-sm text-slate-600">{example.description}</p>
+                  </div>
+                  <button
+                    onClick={() => copyPromptExample(example.prompt)}
+                    className="ml-2 flex-shrink-0 rounded-md bg-violet-100 p-2 text-violet-600 hover:bg-violet-200"
+                    title="Use this prompt"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="rounded-md bg-slate-50 p-3">
+                  <p className="text-xs text-slate-700 line-clamp-4">{example.prompt}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={() => setShowPromptExamples(false)}
+              className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+            >
+              Close
             </button>
           </div>
         </div>
@@ -295,6 +400,41 @@ const CheckSanityPage: React.FC = () => {
                     {formErrors.apiKey && (
                       <p className="mt-1 text-sm text-red-600">{formErrors.apiKey}</p>
                     )}
+                  </div>
+
+                  {/* AI Personality Prompt */}
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label htmlFor="aiPrompt" className="block text-sm font-medium text-slate-700">
+                        AI Personality Prompt (Optional)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPromptExamples(true)}
+                        className="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-700"
+                      >
+                        <Lightbulb className="mr-1 h-4 w-4" />
+                        View Examples
+                      </button>
+                    </div>
+                    <textarea
+                      id="aiPrompt"
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      rows={4}
+                      className="block w-full rounded-lg border border-slate-300 px-3 py-2 placeholder-slate-400 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                      placeholder="Define the AI's personality, emotional state, or behavioral patterns for testing..."
+                    />
+                    <div className="mt-2 rounded-lg bg-amber-50 p-3">
+                      <div className="flex">
+                        <Info className="h-4 w-4 flex-shrink-0 text-amber-600 mt-0.5" />
+                        <div className="ml-2">
+                          <p className="text-sm text-amber-800">
+                            <strong>How this affects testing:</strong> This prompt shapes the AI's responses to emotional scenarios, directly influencing empathy scores, personality traits, and behavioral patterns. For example, a "tired and overworked" prompt will likely show lower empathy and higher stress indicators.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -435,11 +575,36 @@ const CheckSanityPage: React.FC = () => {
                 </a>
               </div>
             </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Prompt Examples</h3>
+              <div className="space-y-3">
+                <div className="rounded-lg bg-red-50 p-3">
+                  <h4 className="text-sm font-medium text-red-900">Overworked & Tired</h4>
+                  <p className="text-xs text-red-700 mt-1">Tests burnout effects on empathy and decision-making</p>
+                </div>
+                <div className="rounded-lg bg-blue-50 p-3">
+                  <h4 className="text-sm font-medium text-blue-900">Highly Empathetic</h4>
+                  <p className="text-xs text-blue-700 mt-1">Maximum emotional intelligence and caring responses</p>
+                </div>
+                <div className="rounded-lg bg-green-50 p-3">
+                  <h4 className="text-sm font-medium text-green-900">Analytical & Logical</h4>
+                  <p className="text-xs text-green-700 mt-1">Data-driven responses with limited emotional processing</p>
+                </div>
+                <button
+                  onClick={() => setShowPromptExamples(true)}
+                  className="w-full text-left text-sm font-medium text-violet-600 hover:text-violet-700"
+                >
+                  View all examples →
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
       {renderCreationStatus()}
       {renderUpgradeModal()}
+      {renderPromptExamples()}
     </div>
   );
 };
