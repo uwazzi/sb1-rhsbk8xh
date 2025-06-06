@@ -29,7 +29,22 @@ const DashboardPage: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPublicTests(data || []);
+      
+      // Transform snake_case database properties to camelCase interface properties
+      const transformedData = (data || []).map(item => ({
+        id: item.id,
+        userId: item.user_id,
+        name: item.name,
+        description: item.description,
+        tests: item.selected_tests, // Transform selected_tests to tests
+        aiSystemPrompt: item.system_prompt, // Transform system_prompt to aiSystemPrompt
+        status: item.status,
+        createdAt: new Date(item.created_at), // Transform created_at to createdAt and convert to Date
+        updatedAt: new Date(item.updated_at), // Transform updated_at to updatedAt and convert to Date
+        isPublic: item.is_public
+      }));
+      
+      setPublicTests(transformedData);
     } catch (error) {
       console.error('Error fetching public tests:', error);
     } finally {

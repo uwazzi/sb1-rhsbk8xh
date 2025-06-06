@@ -74,9 +74,16 @@ class PerthEmpathyScale {
       }
     }
 
-    // Provide more detailed error information
+    // Return default scores instead of throwing an error
     if (validResponseCount === 0) {
-      throw new Error(`No valid responses to analyze. Errors: ${errors.join('; ')}`);
+      console.warn(`No valid responses to analyze. Errors: ${errors.join('; ')}`);
+      return {
+        negativeCognitive: 0,
+        positiveCognitive: 0,
+        negativeAffective: 0,
+        positiveAffective: 0,
+        overall: 0
+      };
     }
 
     const overall = Object.values(scores).reduce((a, b) => a + b, 0) / validResponseCount;
