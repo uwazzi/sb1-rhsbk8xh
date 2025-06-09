@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Brain, FileText, BarChart2, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
-import { mockConfigurations } from '../data/mockData';
-import { TestConfiguration } from '../types';
-import { saveTestResults } from '../lib/supabase';
-import { supabase } from '../lib/supabase';
+import { saveTestResults, analyzeResponses, supabase } from '../lib/supabase';
 
 interface ProgressStep {
   id: string;
@@ -14,22 +11,75 @@ interface ProgressStep {
   icon: React.ReactNode;
 }
 
+interface TestConfiguration {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  tests: string[];
+  aiSystemPrompt?: string;
+  status: 'draft' | 'active' | 'completed';
+  createdAt: Date;
+  updatedAt: Date;
+  isPublic?: boolean;
+}
+
 const TestProgressPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [test, setTest] = useState<TestConfiguration | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [analysis, setAnalysis] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const foundTest = mockConfigurations.find(t => t.id === id);
-    if (foundTest) {
-      setTest(foundTest);
-      simulateTestProgress();
-    } else {
-      navigate('/dashboard');
-    }
+    loadTestConfiguration();
   }, [id, navigate]);
+
+  const loadTestConfiguration = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch test configuration from database
+      const { data: testConfig, error } = await supabase
+        .from('test_configurations')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching test configuration:', error);
+        navigate('/dashboard');
+        return;
+      }
+
+      if (testConfig) {
+        // Transform database response to match interface
+        const transformedTest: TestConfiguration = {
+          id: testConfig.id,
+          userId: testConfig.user_id,
+          name: testConfig.name,
+          description: testConfig.description,
+          tests: testConfig.selected_tests,
+          aiSystemPrompt: testConfig.system_prompt,
+          status: testConfig.status,
+          createdAt: new Date(testConfig.created_at),
+          updatedAt: new Date(testConfig.updated_at),
+          isPublic: testConfig.is_public
+        };
+
+        setTest(transformedTest);
+        simulateTestProgress();
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error loading test configuration:', error);
+      navigate('/dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const steps: ProgressStep[] = [
     {
@@ -83,7 +133,7 @@ const TestProgressPage: React.FC = () => {
       setAnalysis(scores);
       
       // Generate a summary
-      const summary = `Analysis complete with overall score of ${scores.overall}. Shows strengths in positive cognitive empathy.`;
+      const summary = `Analysis complete with overall score of ${Math.round((scores.overall || 0) * 100)}%. Shows strengths in positive cognitive empathy.`;
       
       // Save results to Supabase
       await saveTestResults(id!, scores, summary);
@@ -108,7 +158,7 @@ const TestProgressPage: React.FC = () => {
 
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  if (!test) {
+  if (loading || !test) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
@@ -168,7 +218,7 @@ const TestProgressPage: React.FC = () => {
                               <span className="text-sm text-slate-600">
                                 {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
                               </span>
-                              <span className="font-medium text-slate-900">{Math.round(value)}%</span>
+                              <span className="font-medium text-slate-900">{Math.round((value || 0) * 100)}%</span>
                             </div>
                           ))}
                         </div>

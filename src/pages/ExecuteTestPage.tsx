@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Send, ArrowLeft, ArrowRight, HelpCircle, MessageSquare, Bot } from 'lucide-react';
-import { mockConfigurations, getAllQuestions } from '../data/mockData';
-import { TestConfiguration, TestQuestion } from '../types';
+import { getAllQuestions } from '../data/mockData';
+import { TestQuestion } from '../types';
 import { getGeminiResponse } from '../lib/gemini';
-import { saveTestResponses } from '../lib/supabase';
+import { saveTestResponses, supabase } from '../lib/supabase';
+
+interface TestConfiguration {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  tests: string[];
+  aiSystemPrompt?: string;
+  status: 'draft' | 'active' | 'completed';
+  createdAt: Date;
+  updatedAt: Date;
+  isPublic?: boolean;
+}
 
 const ExecuteTestPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,21 +30,62 @@ const ExecuteTestPage: React.FC = () => {
   const [currentResponse, setCurrentResponse] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    const foundTest = mockConfigurations.find(t => t.id === id);
-    
-    if (foundTest) {
-      setTest(foundTest);
-      const allQuestions = getAllQuestions();
-      const filteredQuestions = allQuestions.filter(q => 
-        foundTest.tests.includes(q.testType as any)
-      );
-      setQuestions(filteredQuestions);
-    } else {
-      navigate('/dashboard');
-    }
+    loadTestConfiguration();
   }, [id, navigate]);
+
+  const loadTestConfiguration = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch test configuration from database
+      const { data: testConfig, error } = await supabase
+        .from('test_configurations')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching test configuration:', error);
+        navigate('/dashboard');
+        return;
+      }
+
+      if (testConfig) {
+        // Transform database response to match interface
+        const transformedTest: TestConfiguration = {
+          id: testConfig.id,
+          userId: testConfig.user_id,
+          name: testConfig.name,
+          description: testConfig.description,
+          tests: testConfig.selected_tests,
+          aiSystemPrompt: testConfig.system_prompt,
+          status: testConfig.status,
+          createdAt: new Date(testConfig.created_at),
+          updatedAt: new Date(testConfig.updated_at),
+          isPublic: testConfig.is_public
+        };
+
+        setTest(transformedTest);
+        
+        // Load questions based on selected tests
+        const allQuestions = getAllQuestions();
+        const filteredQuestions = allQuestions.filter(q => 
+          transformedTest.tests.includes(q.testType as any)
+        );
+        setQuestions(filteredQuestions);
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error loading test configuration:', error);
+      navigate('/dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const currentQuestion = questions[currentQuestionIndex];
   
@@ -113,6 +167,17 @@ const ExecuteTestPage: React.FC = () => {
     }
   };
   
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-violet-600"></div>
+          <p className="text-slate-600">Loading test...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!test || questions.length === 0) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">

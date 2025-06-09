@@ -1,7 +1,19 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check, Clock, FileText } from 'lucide-react';
-import { TestConfiguration } from '../../types';
+
+interface TestConfiguration {
+  id: string;
+  userId?: string;
+  name: string;
+  description?: string;
+  tests: string[];
+  aiSystemPrompt?: string;
+  status: 'draft' | 'active' | 'completed';
+  createdAt: Date;
+  updatedAt: Date;
+  isPublic?: boolean;
+}
 
 interface TestCardProps {
   test: TestConfiguration;
@@ -55,6 +67,19 @@ const TestCard: React.FC<TestCardProps> = ({ test }) => {
     }
   };
 
+  const getTestTypeName = (testType: string) => {
+    switch (testType) {
+      case 'neo':
+        return 'NEO-PI-R';
+      case 'pes':
+        return 'Perth Empathy Scale';
+      case 'pcl':
+        return 'PCL-R';
+      default:
+        return testType.toUpperCase();
+    }
+  };
+
   return (
     <div className="card group hover:shadow-md">
       <div className="mb-4 flex items-center justify-between">
@@ -68,24 +93,21 @@ const TestCard: React.FC<TestCardProps> = ({ test }) => {
       </div>
       
       <h3 className="mb-2 text-xl font-semibold text-slate-900">{test.name}</h3>
-      <p className="mb-6 text-slate-600">{test.description}</p>
+      <p className="mb-6 text-slate-600">{test.description || 'No description provided'}</p>
       
       <div className="mb-4 flex flex-wrap gap-2">
-        {test.tests.includes('neo') && (
-          <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-800">
-            NEO-PI-R
+        {test.tests.map((testType) => (
+          <span
+            key={testType}
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              testType === 'neo' ? 'bg-violet-100 text-violet-800' :
+              testType === 'pes' ? 'bg-blue-100 text-blue-800' :
+              'bg-emerald-100 text-emerald-800'
+            }`}
+          >
+            {getTestTypeName(testType)}
           </span>
-        )}
-        {test.tests.includes('pes') && (
-          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">
-            PES
-          </span>
-        )}
-        {test.tests.includes('pcl') && (
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">
-            PCL-R
-          </span>
-        )}
+        ))}
       </div>
       
       <div className="flex justify-between border-t border-slate-200 pt-4">

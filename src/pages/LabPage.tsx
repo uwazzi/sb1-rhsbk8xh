@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Brain, MessageSquare, Bot, Loader2, ArrowRight, Settings, Cpu, Zap, Play, FileText } from 'lucide-react';
-import { mockConfigurations, pesQuestions } from '../data/mockData';
+import { pesQuestions } from '../data/mockData';
 import { getGeminiResponse } from '../lib/gemini';
 import { supabase, analyzeResponses } from '../lib/supabase';
 
@@ -9,6 +9,19 @@ interface AgentMessage {
   role: 'agent' | 'ai';
   content: string;
   timestamp: Date;
+}
+
+interface TestConfiguration {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  tests: string[];
+  aiSystemPrompt?: string;
+  status: 'draft' | 'active' | 'completed';
+  createdAt: Date;
+  updatedAt: Date;
+  isPublic?: boolean;
 }
 
 // Default scores for fallback
@@ -26,28 +39,68 @@ const LabPage: React.FC = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [scores, setScores] = useState<any>(null);
-  const [test, setTest] = useState(mockConfigurations[0]);
+  const [test, setTest] = useState<TestConfiguration | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState('');
   const [llmModel, setLlmModel] = useState('Gemini 2.0 Flash');
   const [responseTime, setResponseTime] = useState<number | null>(null);
   const [totalTokens, setTotalTokens] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      const foundTest = mockConfigurations.find(t => t.id === id);
-      if (foundTest) {
-        setTest(foundTest);
-        // Load the custom prompt from the test configuration
-        // Check both possible property names for compatibility
-        const prompt = foundTest.aiSystemPrompt || foundTest.systemPrompt || '';
-        if (prompt) {
-          setCustomPrompt(prompt);
+    loadTestConfiguration();
+  }, [id]);
+
+  const loadTestConfiguration = async () => {
+    try {
+      setLoading(true);
+      
+      if (id) {
+        // Fetch test configuration from database
+        const { data: testConfig, error } = await supabase
+          .from('test_configurations')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching test configuration:', error);
+          setError('Failed to load test configuration');
+          return;
+        }
+
+        if (testConfig) {
+          // Transform database response to match interface
+          const transformedTest: TestConfiguration = {
+            id: testConfig.id,
+            userId: testConfig.user_id,
+            name: testConfig.name,
+            description: testConfig.description,
+            tests: testConfig.selected_tests,
+            aiSystemPrompt: testConfig.system_prompt,
+            status: testConfig.status,
+            createdAt: new Date(testConfig.created_at),
+            updatedAt: new Date(testConfig.updated_at),
+            isPublic: testConfig.is_public
+          };
+
+          setTest(transformedTest);
+          
+          // Load the custom prompt from the test configuration
+          const prompt = transformedTest.aiSystemPrompt || '';
+          if (prompt) {
+            setCustomPrompt(prompt);
+          }
         }
       }
+    } catch (error) {
+      console.error('Error loading test configuration:', error);
+      setError('Failed to load test configuration');
+    } finally {
+      setLoading(false);
     }
-  }, [id]);
+  };
 
   const analyzeResponse = async (response: string, questionId: string) => {
     try {
@@ -150,6 +203,56 @@ const LabPage: React.FC = () => {
     }
     return 'Custom Personality';
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 py-8">
+        <div className="container-custom max-w-4xl">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Brain className="mx-auto h-12 w-12 animate-pulse text-violet-600" />
+              <p className="mt-4 text-slate-600">Loading test configuration...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 py-8">
+        <div className="container-custom max-w-4xl">
+          <div className="rounded-lg bg-red-50 p-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <Brain className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <p className="mt-1 text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!test) {
+    return (
+      <div className="min-h-screen bg-slate-50 py-8">
+        <div className="container-custom max-w-4xl">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Brain className="mx-auto h-12 w-12 text-slate-400" />
+              <p className="mt-4 text-slate-600">Test configuration not found</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Pre-test setup screen
   if (!hasStarted) {

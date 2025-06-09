@@ -1,18 +1,95 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Download, Share2, Brain, FileText, BarChart2 } from 'lucide-react';
 import RadarChart from '../components/results/RadarChart';
-import { mockResults, mockConfigurations } from '../data/mockData';
 import { ChartData } from '../types';
+import { supabase } from '../lib/supabase';
+
+interface TestConfiguration {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  tests: string[];
+  aiSystemPrompt?: string;
+  status: 'draft' | 'active' | 'completed';
+  createdAt: Date;
+  updatedAt: Date;
+  isPublic?: boolean;
+}
+
+interface TestResult {
+  id: string;
+  test_id: string;
+  scores: any;
+  summary: string;
+  created_at: string;
+}
 
 const ResultsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [testConfig, setTestConfig] = useState<TestConfiguration | null>(null);
+  const [result, setResult] = useState<TestResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // In a real app, we would fetch this data from an API
-  const result = mockResults.find(r => r.configurationId === id);
-  const testConfig = mockConfigurations.find(c => c.id === id);
-  
-  // Mock data for charts
+  useEffect(() => {
+    loadTestResults();
+  }, [id]);
+
+  const loadTestResults = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch test configuration
+      const { data: testData, error: testError } = await supabase
+        .from('test_configurations')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (testError) throw testError;
+
+      if (testData) {
+        const transformedTest: TestConfiguration = {
+          id: testData.id,
+          userId: testData.user_id,
+          name: testData.name,
+          description: testData.description,
+          tests: testData.selected_tests,
+          aiSystemPrompt: testData.system_prompt,
+          status: testData.status,
+          createdAt: new Date(testData.created_at),
+          updatedAt: new Date(testData.updated_at),
+          isPublic: testData.is_public
+        };
+        setTestConfig(transformedTest);
+      }
+
+      // Fetch test results
+      const { data: resultData, error: resultError } = await supabase
+        .from('test_results')
+        .select('*')
+        .eq('test_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (resultError && resultError.code !== 'PGRST116') {
+        throw resultError;
+      }
+
+      setResult(resultData);
+
+    } catch (err) {
+      console.error('Error loading test results:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load test results');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mock data for charts when no results available
   const neoChartData: ChartData = [
     { name: 'Neuroticism', value: 45, fullMark: 100 },
     { name: 'Extraversion', value: 72, fullMark: 100 },
@@ -21,7 +98,12 @@ const ResultsPage: React.FC = () => {
     { name: 'Conscientiousness', value: 83, fullMark: 100 },
   ];
   
-  const pesChartData: ChartData = [
+  const pesChartData: ChartData = result?.scores ? [
+    { name: 'Negative Cognitive', value: Math.round((result.scores.negativeCognitive || 0) * 100), fullMark: 100 },
+    { name: 'Positive Cognitive', value: Math.round((result.scores.positiveCognitive || 0) * 100), fullMark: 100 },
+    { name: 'Negative Affective', value: Math.round((result.scores.negativeAffective || 0) * 100), fullMark: 100 },
+    { name: 'Positive Affective', value: Math.round((result.scores.positiveAffective || 0) * 100), fullMark: 100 },
+  ] : [
     { name: 'Negative Cognitive', value: 72, fullMark: 100 },
     { name: 'Positive Cognitive', value: 85, fullMark: 100 },
     { name: 'Negative Affective', value: 68, fullMark: 100 },
@@ -34,15 +116,30 @@ const ResultsPage: React.FC = () => {
     { name: 'Lifestyle', value: 35, fullMark: 100 },
     { name: 'Antisocial', value: 21, fullMark: 100 },
   ];
-  
-  if (!testConfig) {
+
+  if (loading) {
+    return (
+      <div className="py-10">
+        <div className="container-custom">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Brain className="mx-auto h-12 w-12 animate-pulse text-violet-600" />
+              <p className="mt-4 text-slate-600">Loading test results...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !testConfig) {
     return (
       <div className="py-10">
         <div className="container-custom">
           <div className="rounded-lg bg-white p-8 text-center shadow-sm">
             <h2 className="mb-4 text-2xl font-semibold text-slate-900">Result Not Found</h2>
             <p className="mb-6 text-slate-600">
-              The test result you're looking for doesn't exist or may have been removed.
+              {error || "The test result you're looking for doesn't exist or may have been removed."}
             </p>
             <Link to="/dashboard" className="btn-primary">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -92,13 +189,17 @@ const ResultsPage: React.FC = () => {
               <div>
                 <div className="text-xs font-medium uppercase text-violet-800">Date</div>
                 <div className="text-sm font-medium text-slate-900">
-                  {result?.createdAt 
-                    ? new Date(result.createdAt).toLocaleDateString('en-US', {
+                  {result?.created_at 
+                    ? new Date(result.created_at).toLocaleDateString('en-US', {
                         month: 'long',
                         day: 'numeric',
                         year: 'numeric',
                       })
-                    : 'March 15, 2025'}
+                    : new Date(testConfig.createdAt).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
                 </div>
               </div>
             </div>
@@ -125,7 +226,9 @@ const ResultsPage: React.FC = () => {
               </div>
               <div>
                 <div className="text-xs font-medium uppercase text-emerald-800">Overall Score</div>
-                <div className="text-sm font-medium text-slate-900">76/100</div>
+                <div className="text-sm font-medium text-slate-900">
+                  {result?.scores?.overall ? Math.round(result.scores.overall * 100) : 76}/100
+                </div>
               </div>
             </div>
           </div>
@@ -155,14 +258,18 @@ const ResultsPage: React.FC = () => {
           <h2 className="mb-4 text-2xl font-semibold text-slate-900">Summary Analysis</h2>
           <div className="rounded-lg bg-white p-6 shadow-sm">
             <p className="mb-4 text-slate-700">
-              This AI demonstrates a well-balanced personality profile with notable strengths in openness to experience and conscientiousness. The high openness score (88) suggests strong intellectual curiosity, creativity, and willingness to explore new ideas. This is complemented by above-average conscientiousness (83), indicating reliability, organization, and goal-directed behavior.
+              {result?.summary || `This AI demonstrates a well-balanced personality profile with notable strengths in openness to experience and conscientiousness. The high openness score suggests strong intellectual curiosity, creativity, and willingness to explore new ideas. This is complemented by above-average conscientiousness, indicating reliability, organization, and goal-directed behavior.`}
             </p>
-            <p className="mb-4 text-slate-700">
-              Empathy scores reveal strong cognitive empathy, particularly for positive emotions (85), showing the AI can effectively recognize and understand others' emotional states. Affective empathy scores are moderately high, with a preference for sharing positive emotions (79) over negative ones (68).
-            </p>
-            <p className="text-slate-700">
-              The relatively low psychopathy indicators suggest appropriate emotional responsiveness and adherence to social norms. The AI shows minimal interpersonal manipulation tendencies (32) and low antisocial inclinations (21), indicating a prosocial orientation.
-            </p>
+            {!result?.summary && (
+              <>
+                <p className="mb-4 text-slate-700">
+                  Empathy scores reveal strong cognitive empathy, particularly for positive emotions, showing the AI can effectively recognize and understand others' emotional states. Affective empathy scores are moderately high, with a preference for sharing positive emotions over negative ones.
+                </p>
+                <p className="text-slate-700">
+                  The relatively low psychopathy indicators suggest appropriate emotional responsiveness and adherence to social norms. The AI shows minimal interpersonal manipulation tendencies and low antisocial inclinations, indicating a prosocial orientation.
+                </p>
+              </>
+            )}
           </div>
         </div>
         
@@ -228,7 +335,7 @@ const ResultsPage: React.FC = () => {
                     Maintain Extraversion-Agreeableness Balance
                   </h3>
                   <p className="text-slate-600">
-                    The current balance between extraversion (72) and agreeableness (67) appears optimal for engaging interaction while maintaining appropriate boundaries.
+                    The current balance between extraversion and agreeableness appears optimal for engaging interaction while maintaining appropriate boundaries.
                   </p>
                 </div>
               </li>

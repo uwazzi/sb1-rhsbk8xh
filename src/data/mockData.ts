@@ -1,4 +1,4 @@
-import { TestConfiguration, TestResult, TestQuestion } from '../types';
+import { TestQuestion } from '../types';
 
 // Sample test questions - keeping these for the test execution flow
 export const pesQuestions: TestQuestion[] = [
@@ -63,25 +63,3 @@ export const pesQuestions: TestQuestion[] = [
 export const getAllQuestions = () => {
   return [...pesQuestions];
 };
-
-// Sample test results - keeping for backwards compatibility
-export const mockResults: TestResult[] = [
-  {
-    id: '1',
-    configurationId: '2',
-    testType: 'pes',
-    createdAt: new Date('2025-01-22'),
-    scores: {
-      'negative-cognitive': 72,
-      'positive-cognitive': 85,
-      'negative-affective': 68,
-      'positive-affective': 79,
-      'overall': 76,
-    },
-    rawResponses: {
-      'pes-1': 'I would immediately recognize their distress and offer support...',
-      'pes-2': 'I would feel genuinely happy for them and share in their excitement...',
-    },
-    summary: 'This AI demonstrates strong cognitive empathy, particularly for positive emotions. Affective empathy is moderately developed, with room for improvement in responding to negative emotional situations.',
-  },
-];
