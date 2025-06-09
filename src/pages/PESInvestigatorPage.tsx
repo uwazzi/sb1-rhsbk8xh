@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Plus, Play, BarChart3, Users, TrendingUp, Eye, Settings, Zap, MessageSquare, Lightbulb, Copy, Info } from 'lucide-react';
+import { Brain, Plus, Play, BarChart3, Users, TrendingUp, Eye, Settings, Zap, MessageSquare, Lightbulb, Copy, Info, Cpu } from 'lucide-react';
 import PESAssessment from '../components/pes/PESAssessment';
 import LlamaIndexAssessment from '../components/pes/LlamaIndexAssessment';
+import LocalEmpathyAssessment from '../components/webllm/LocalEmpathyAssessment';
 import AgentMonitor from '../components/pes/AgentMonitor';
 import { pesAgentClient, AgentRegistration } from '../lib/pesAgent';
+import { LocalLLM, EmpathyAnalysisResult } from '../lib/webllm';
 import { supabase } from '../lib/supabase';
 
-type ViewMode = 'overview' | 'assessment' | 'llamaindex' | 'monitor' | 'register';
+type ViewMode = 'overview' | 'assessment' | 'llamaindex' | 'local-llm' | 'monitor' | 'register';
 
 const PESInvestigatorPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ const PESInvestigatorPage: React.FC = () => {
   const [userSessions, setUserSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPromptExamples, setShowPromptExamples] = useState(false);
+  const [webGPUSupported, setWebGPUSupported] = useState(false);
   const [registerForm, setRegisterForm] = useState({
     name: '',
     modelType: 'gemini',
@@ -60,6 +63,7 @@ const PESInvestigatorPage: React.FC = () => {
   useEffect(() => {
     checkAuth();
     loadData();
+    checkWebGPUSupport();
   }, []);
 
   const checkAuth = async () => {
@@ -67,6 +71,11 @@ const PESInvestigatorPage: React.FC = () => {
     if (!session) {
       navigate('/login', { state: { returnTo: '/pes-investigator' } });
     }
+  };
+
+  const checkWebGPUSupport = () => {
+    const supported = LocalLLM.checkWebGPUSupport();
+    setWebGPUSupported(supported);
   };
 
   const loadData = async () => {
@@ -106,6 +115,12 @@ const PESInvestigatorPage: React.FC = () => {
 
   const handleAssessmentComplete = (sessionId: string, scores: any) => {
     console.log('Assessment completed:', { sessionId, scores });
+    setViewMode('overview');
+    loadData();
+  };
+
+  const handleLocalLLMComplete = (results: EmpathyAnalysisResult) => {
+    console.log('Local LLM assessment completed:', results);
     setViewMode('overview');
     loadData();
   };
@@ -229,6 +244,13 @@ const PESInvestigatorPage: React.FC = () => {
             AI Agent Assessment
           </button>
           <button
+            onClick={() => setViewMode('local-llm')}
+            className="inline-flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-400"
+          >
+            <Cpu className="mr-2 h-4 w-4" />
+            Local LLM Assessment
+          </button>
+          <button
             onClick={() => setViewMode('monitor')}
             className="inline-flex items-center rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-400"
           >
@@ -246,7 +268,7 @@ const PESInvestigatorPage: React.FC = () => {
       </div>
 
       {/* Assessment Types */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center space-x-3 mb-4">
             <MessageSquare className="h-8 w-8 text-blue-600" />
@@ -300,6 +322,40 @@ const PESInvestigatorPage: React.FC = () => {
             Start AI Agent Assessment
           </button>
         </div>
+
+        <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center space-x-3 mb-4">
+            <Cpu className="h-8 w-8 text-emerald-600" />
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Local LLM Assessment</h3>
+              <p className="text-sm text-slate-600">Privacy-first browser-based evaluation</p>
+            </div>
+          </div>
+          <p className="text-slate-700 mb-4">
+            Run empathy assessment entirely in your browser using WebLLM. No data leaves your device, ensuring complete privacy.
+          </p>
+          <div className="space-y-2 mb-4">
+            <div className="flex items-center text-xs text-slate-600">
+              <div className={`w-2 h-2 rounded-full mr-2 ${webGPUSupported ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+              {webGPUSupported ? 'WebGPU supported' : 'CPU fallback available'}
+            </div>
+            <div className="flex items-center text-xs text-slate-600">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+              Complete privacy & offline capability
+            </div>
+            <div className="flex items-center text-xs text-slate-600">
+              <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+              Multiple model options
+            </div>
+          </div>
+          <button
+            onClick={() => setViewMode('local-llm')}
+            className="inline-flex items-center text-sm font-medium text-emerald-600 hover:text-emerald-700"
+          >
+            <Cpu className="mr-2 h-4 w-4" />
+            Start Local Assessment
+          </button>
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -349,12 +405,14 @@ const PESInvestigatorPage: React.FC = () => {
               <div key={session.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="text-xl">
-                    {session.session_config?.agent_type === 'llamaindex' ? '🤖' : '📝'}
+                    {session.session_config?.agent_type === 'llamaindex' ? '🤖' : 
+                     session.session_config?.agent_type === 'local-llm' ? '💻' : '📝'}
                   </div>
                   <div>
                     <p className="font-medium text-slate-900">{session.agent_registry.name}</p>
                     <p className="text-sm text-slate-600">
-                      {session.session_config?.agent_type === 'llamaindex' ? 'AI Agent Assessment' : 'Manual Assessment'} • 
+                      {session.session_config?.agent_type === 'llamaindex' ? 'AI Agent Assessment' : 
+                       session.session_config?.agent_type === 'local-llm' ? 'Local LLM Assessment' : 'Manual Assessment'} • 
                       {session.status === 'completed' 
                         ? ` Completed ${new Date(session.completed_at).toLocaleDateString()}`
                         : ` Started ${new Date(session.started_at).toLocaleDateString()}`
@@ -397,16 +455,39 @@ const PESInvestigatorPage: React.FC = () => {
                 Manual Assessment
               </button>
               <button
-                onClick={() => setViewMode('llamaindex')}
-                className="inline-flex items-center rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+                onClick={() => setViewMode('local-llm')}
+                className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
               >
-                <Zap className="mr-2 h-4 w-4" />
-                AI Agent Assessment
+                <Cpu className="mr-2 h-4 w-4" />
+                Local LLM Assessment
               </button>
             </div>
           </div>
         )}
       </div>
+    </div>
+  );
+
+  const renderLocalLLMSetup = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Local LLM Assessment</h2>
+          <p className="text-slate-600">Privacy-first empathy evaluation running entirely in your browser</p>
+        </div>
+        <button
+          onClick={() => setViewMode('overview')}
+          className="text-sm text-slate-600 hover:text-slate-900"
+        >
+          ← Back to Overview
+        </button>
+      </div>
+
+      <LocalEmpathyAssessment
+        onComplete={handleLocalLLMComplete}
+        onCancel={() => setViewMode('overview')}
+        personalityPrompt={registerForm.aiPersonalityPrompt}
+      />
     </div>
   );
 
@@ -576,113 +657,6 @@ const PESInvestigatorPage: React.FC = () => {
     </div>
   );
 
-  const renderRegisterForm = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Register New Agent</h2>
-        <button
-          onClick={() => setViewMode('overview')}
-          className="text-sm text-slate-600 hover:text-slate-900"
-        >
-          ← Back to Overview
-        </button>
-      </div>
-
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <form onSubmit={handleRegisterAgent} className="space-y-6">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-slate-700">
-              Agent Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={registerForm.name}
-              onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
-              placeholder="e.g., Gemini Pro Empathy Test"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="modelType" className="block text-sm font-medium text-slate-700">
-              Model Type
-            </label>
-            <select
-              id="modelType"
-              value={registerForm.modelType}
-              onChange={(e) => setRegisterForm({ ...registerForm, modelType: e.target.value })}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
-            >
-              <option value="gemini">Gemini</option>
-              <option value="gpt-4">GPT-4</option>
-              <option value="claude">Claude</option>
-              <option value="llama">Llama</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-
-          {/* AI Personality Prompt */}
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <label htmlFor="aiPersonalityPrompt" className="block text-sm font-medium text-slate-700">
-                AI Personality Prompt (Optional)
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowPromptExamples(true)}
-                className="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-700"
-              >
-                <Lightbulb className="mr-1 h-4 w-4" />
-                View Examples
-              </button>
-            </div>
-            <textarea
-              id="aiPersonalityPrompt"
-              value={registerForm.aiPersonalityPrompt}
-              onChange={(e) => setRegisterForm({ ...registerForm, aiPersonalityPrompt: e.target.value })}
-              rows={4}
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 placeholder-slate-400 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
-              placeholder="Define the AI's personality, emotional state, or behavioral patterns for testing..."
-            />
-            <div className="mt-2 rounded-lg bg-amber-50 p-3">
-              <div className="flex">
-                <Info className="h-4 w-4 flex-shrink-0 text-amber-600 mt-0.5" />
-                <div className="ml-2">
-                  <p className="text-sm text-amber-800">
-                    <strong>How this affects empathy assessment:</strong> This prompt shapes the AI's responses to emotional scenarios during PES evaluation, directly influencing empathy scores, personality traits, and behavioral patterns. For example, a "tired and overworked" prompt will likely show lower empathy and higher stress indicators.
-                  </p>
-                </div>
-              </div>
-            </div>
-            {registerForm.aiPersonalityPrompt && (
-              <div className="mt-2 text-sm text-violet-600">
-                Personality Type: {getPersonalityType(registerForm.aiPersonalityPrompt)}
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => setViewMode('overview')}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
-            >
-              Register Agent
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -700,6 +674,7 @@ const PESInvestigatorPage: React.FC = () => {
         {viewMode === 'overview' && renderOverview()}
         {viewMode === 'assessment' && renderAssessmentSetup()}
         {viewMode === 'llamaindex' && renderLlamaIndexSetup()}
+        {viewMode === 'local-llm' && renderLocalLLMSetup()}
         {viewMode === 'monitor' && <AgentMonitor />}
         {viewMode === 'register' && renderRegisterForm()}
         {renderPromptExamples()}
