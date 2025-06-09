@@ -483,11 +483,82 @@ const PESInvestigatorPage: React.FC = () => {
         </button>
       </div>
 
-      <LocalEmpathyAssessment
-        onComplete={handleLocalLLMComplete}
-        onCancel={() => setViewMode('overview')}
-        personalityPrompt={registerForm.aiPersonalityPrompt}
-      />
+      {selectedAgent ? (
+        <LocalEmpathyAssessment
+          agentId={selectedAgent}
+          onComplete={handleAssessmentComplete}
+          onCancel={() => setSelectedAgent(null)}
+        />
+      ) : (
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Select an Agent for Local LLM Assessment</h3>
+          <div className="mb-6 p-4 bg-emerald-50 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <Cpu className="h-5 w-5 text-emerald-600 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-medium text-emerald-900">Local LLM Assessment Features</h4>
+                <ul className="mt-2 text-sm text-emerald-700 space-y-1">
+                  <li>• Complete privacy - no data leaves your browser</li>
+                  <li>• WebGPU acceleration when available</li>
+                  <li>• Offline capability after initial model download</li>
+                  <li>• Real-time empathy analysis</li>
+                  <li>• Custom AI personality prompt integration</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {agents.map((agent) => (
+              <button
+                key={agent.id}
+                onClick={() => setSelectedAgent(agent.id)}
+                className="text-left p-4 border border-slate-200 rounded-lg hover:border-emerald-300 hover:bg-emerald-50 transition-all"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="text-2xl">
+                    {agent.model_type === 'gemini' ? '🔮' : 
+                     agent.model_type === 'gpt-4' ? '🤖' : 
+                     agent.model_type === 'claude' ? '🧠' : '⚡'}
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">{agent.name}</p>
+                    <p className="text-sm text-slate-600">{agent.model_type}</p>
+                  </div>
+                </div>
+                <div className="mt-3 text-sm text-slate-600">
+                  {agent.total_tests} tests completed
+                  {agent.average_empathy_score && (
+                    <span className="ml-2">• Avg: {agent.average_empathy_score.toFixed(2)}</span>
+                  )}
+                </div>
+                {agent.config?.aiPersonalityPrompt && (
+                  <div className="mt-2 text-xs text-emerald-600">
+                    ✨ Custom Personality: {getPersonalityType(agent.config.aiPersonalityPrompt)}
+                  </div>
+                )}
+                <div className="mt-2 text-xs text-emerald-600">
+                  🔒 Privacy-First Assessment
+                </div>
+              </button>
+            ))}
+          </div>
+          
+          {agents.length === 0 && (
+            <div className="text-center py-8">
+              <Settings className="mx-auto h-12 w-12 text-slate-400" />
+              <p className="mt-4 text-slate-600">No agents registered yet.</p>
+              <button
+                onClick={() => setViewMode('register')}
+                className="mt-4 inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Register First Agent
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
