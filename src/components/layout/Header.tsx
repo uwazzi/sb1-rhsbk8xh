@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Brain, BarChart2, User, LogOut, ExternalLink } from 'lucide-react';
+import { Menu, X, Brain, BarChart2, User, LogOut, ExternalLink, Search } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { signOut } from '../../lib/auth';
 
@@ -45,6 +45,7 @@ const Header: React.FC = () => {
     { name: 'Home', path: '/' },
     { name: 'Dashboard', path: '/dashboard' },
     { name: 'Check Sanity', path: '/create' },
+    { name: 'PES Investigator', path: '/pes-investigator' },
     { name: 'Documentation', path: '/documentation' },
   ];
 
@@ -102,7 +103,7 @@ const Header: React.FC = () => {
           <div className="hidden items-center space-x-4 md:flex">
             {user ? (
               <>
-                <Link to="/dashboard\" className="btn-primary">
+                <Link to="/dashboard" className="btn-primary">
                   <BarChart2 className="mr-2 h-4 w-4" />
                   View Tests
                 </Link>

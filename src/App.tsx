@@ -12,6 +12,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import AuthPage from './pages/AuthPage';
 import LabPage from './pages/LabPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import PESInvestigatorPage from './pages/PESInvestigatorPage';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         <Route path="progress/:id" element={<TestProgressPage />} />
         <Route path="results/:id" element={<ResultsPage />} />
         <Route path="documentation" element={<DocumentationPage />} />
+        <Route path="pes-investigator" element={<PESInvestigatorPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
