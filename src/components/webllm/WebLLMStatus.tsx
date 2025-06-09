@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Brain, Cpu, Zap, AlertTriangle, CheckCircle, Download } from 'lucide-react';
+import { Brain, Cpu, Zap, AlertTriangle, CheckCircle, Download, Info } from 'lucide-react';
 import { LocalLLM } from '../../lib/webllm';
 
 interface WebLLMStatusProps {
@@ -13,6 +13,8 @@ const WebLLMStatus: React.FC<WebLLMStatusProps> = ({ onModelReady }) => {
   const [progress, setProgress] = useState(0);
   const [selectedModel, setSelectedModel] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [downloadSpeed, setDownloadSpeed] = useState<string>('');
+  const [estimatedTime, setEstimatedTime] = useState<string>('');
 
   useEffect(() => {
     // Check WebGPU support
@@ -36,15 +38,33 @@ const WebLLMStatus: React.FC<WebLLMStatusProps> = ({ onModelReady }) => {
     setIsInitializing(true);
     setError(null);
     setProgress(0);
+    setDownloadSpeed('');
+    setEstimatedTime('');
 
     try {
       const llm = new LocalLLM((progressValue) => {
         setProgress(progressValue);
+        
+        // Calculate download speed and estimated time
+        if (progressValue > 0 && progressValue < 100) {
+          const modelSize = getModelSizeInBytes(selectedModel);
+          const downloadedSize = (modelSize * progressValue) / 100;
+          const elapsedTime = Date.now() - startTime;
+          const speed = downloadedSize / (elapsedTime / 1000); // bytes per second
+          const remainingBytes = modelSize - downloadedSize;
+          const remainingTime = remainingBytes / speed;
+
+          setDownloadSpeed(formatSpeed(speed));
+          setEstimatedTime(formatTime(remainingTime));
+        }
       });
 
+      const startTime = Date.now();
       await llm.initialize(selectedModel);
       setIsReady(true);
       setProgress(100);
+      setDownloadSpeed('');
+      setEstimatedTime('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initialize local LLM');
       setIsReady(false);
@@ -58,6 +78,29 @@ const WebLLMStatus: React.FC<WebLLMStatusProps> = ({ onModelReady }) => {
     if (modelId.includes('1B') || modelId.includes('1.5B')) return '~800MB';
     if (modelId.includes('2b')) return '~1.3GB';
     return '~1.0GB';
+  };
+
+  const getModelSizeInBytes = (modelId: string): number => {
+    if (modelId.includes('3B')) return 2 * 1024 * 1024 * 1024; // 2GB
+    if (modelId.includes('1B') || modelId.includes('1.5B')) return 800 * 1024 * 1024; // 800MB
+    if (modelId.includes('2b')) return 1.3 * 1024 * 1024 * 1024; // 1.3GB
+    return 1024 * 1024 * 1024; // 1GB
+  };
+
+  const formatSpeed = (bytesPerSecond: number): string => {
+    if (bytesPerSecond >= 1024 * 1024) {
+      return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
+    }
+    return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
+  };
+
+  const formatTime = (seconds: number): string => {
+    if (seconds >= 60) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = Math.floor(seconds % 60);
+      return `${minutes}m ${remainingSeconds}s`;
+    }
+    return `${Math.floor(seconds)}s`;
   };
 
   const getModelDescription = (modelId: string): string => {
@@ -151,9 +194,18 @@ const WebLLMStatus: React.FC<WebLLMStatusProps> = ({ onModelReady }) => {
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
-            <p className="text-xs text-slate-600">
-              This may take a few minutes depending on your internet connection...
-            </p>
+            {(downloadSpeed || estimatedTime) && (
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <span>Download Speed: {downloadSpeed}</span>
+                <span>Estimated Time: {estimatedTime}</span>
+              </div>
+            )}
+            <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
+              <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+              <p className="text-xs text-blue-700">
+                The model is being downloaded and initialized in your browser. This may take a few minutes depending on your internet connection. The model will be cached for future use.
+              </p>
+            </div>
           </div>
         )}
 
@@ -170,17 +222,23 @@ const WebLLMStatus: React.FC<WebLLMStatusProps> = ({ onModelReady }) => {
         )}
 
         {error && (
-          <div className="flex items-start space-x-3 p-4 bg-red-50 rounded-lg">
-            <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-red-900">Initialization Failed</p>
-              <p className="text-xs text-red-700">{error}</p>
-              <button
-                onClick={handleInitialize}
-                className="mt-2 text-xs font-medium text-red-600 hover:text-red-700"
-              >
-                Try Again
-              </button>
+          <div className="rounded-lg bg-red-50 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <p className="mt-1 text-sm text-red-700">{error}</p>
+                <div className="mt-4">
+                  <button
+                    onClick={handleInitialize}
+                    className="rounded-md bg-red-100 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-200"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

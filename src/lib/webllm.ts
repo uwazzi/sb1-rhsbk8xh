@@ -37,7 +37,40 @@ export class LocalLLM {
     try {
       console.log(`Initializing WebLLM with model: ${modelId}`);
       
+      // Create app config with model list
+      const appConfig = {
+        model_list: [
+          {
+            model: "https://huggingface.co/mlc-ai/mlc-chat-Llama-3.2-3B-Instruct-q4f32_1-MLC/resolve/main/",
+            model_id: "Llama-3.2-3B-Instruct-q4f32_1-MLC",
+            model_lib: "https://huggingface.co/mlc-ai/mlc-chat-Llama-3.2-3B-Instruct-q4f32_1-MLC/resolve/main/Llama-3.2-3B-Instruct-q4f32_1-MLC-ctx4k.wasm",
+          },
+          {
+            model: "https://huggingface.co/mlc-ai/mlc-chat-Llama-3.2-1B-Instruct-q4f32_1-MLC/resolve/main/",
+            model_id: "Llama-3.2-1B-Instruct-q4f32_1-MLC",
+            model_lib: "https://huggingface.co/mlc-ai/mlc-chat-Llama-3.2-1B-Instruct-q4f32_1-MLC/resolve/main/Llama-3.2-1B-Instruct-q4f32_1-MLC-ctx4k.wasm",
+          },
+          {
+            model: "https://huggingface.co/mlc-ai/mlc-chat-Phi-3.5-mini-instruct-q4f16_1-MLC/resolve/main/",
+            model_id: "Phi-3.5-mini-instruct-q4f16_1-MLC",
+            model_lib: "https://huggingface.co/mlc-ai/mlc-chat-Phi-3.5-mini-instruct-q4f16_1-MLC/resolve/main/Phi-3.5-mini-instruct-q4f16_1-MLC-ctx4k.wasm",
+          },
+          {
+            model: "https://huggingface.co/mlc-ai/mlc-chat-Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/main/",
+            model_id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            model_lib: "https://huggingface.co/mlc-ai/mlc-chat-Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/main/Qwen2.5-1.5B-Instruct-q4f16_1-MLC-ctx4k.wasm",
+          },
+          {
+            model: "https://huggingface.co/mlc-ai/mlc-chat-gemma-2-2b-it-q4f16_1-MLC/resolve/main/",
+            model_id: "gemma-2-2b-it-q4f16_1-MLC",
+            model_lib: "https://huggingface.co/mlc-ai/mlc-chat-gemma-2-2b-it-q4f16_1-MLC/resolve/main/gemma-2-2b-it-q4f16_1-MLC-ctx4k.wasm",
+          }
+        ],
+      };
+
+      // Initialize the engine with the app config
       this.engine = await webllm.CreateMLCEngine(modelId, {
+        appConfig,
         initProgressCallback: (report) => {
           this.initializationProgress = report.progress * 100;
           console.log(`Loading model: ${this.initializationProgress.toFixed(2)}%`);

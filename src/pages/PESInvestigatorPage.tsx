@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Plus, Play, BarChart3, Users, TrendingUp, Eye, Settings, Zap, MessageSquare, Lightbulb, Copy, Info, Cpu } from 'lucide-react';
+import { Brain, Plus, Play, BarChart3, Users, TrendingUp, Eye, Settings, Zap, MessageSquare, Lightbulb, Copy, Info, Cpu, CheckCircle } from 'lucide-react';
 import PESAssessment from '../components/pes/PESAssessment';
 import LlamaIndexAssessment from '../components/pes/LlamaIndexAssessment';
 import LocalEmpathyAssessment from '../components/webllm/LocalEmpathyAssessment';
@@ -8,6 +8,7 @@ import AgentMonitor from '../components/pes/AgentMonitor';
 import { pesAgentClient, AgentRegistration } from '../lib/pesAgent';
 import { LocalLLM, EmpathyAnalysisResult } from '../lib/webllm';
 import { supabase } from '../lib/supabase';
+import GuestWizard from '../components/wizard/GuestWizard';
 
 type ViewMode = 'overview' | 'assessment' | 'llamaindex' | 'local-llm' | 'monitor' | 'register';
 
@@ -26,6 +27,9 @@ const PESInvestigatorPage: React.FC = () => {
     aiPersonalityPrompt: '',
     config: {}
   });
+  const [showWaitlist, setShowWaitlist] = useState(false);
+  const [waitlistComplete, setWaitlistComplete] = useState(false);
+  const [waitlistEmail, setWaitlistEmail] = useState('');
 
   const promptExamples = [
     {
@@ -61,17 +65,9 @@ const PESInvestigatorPage: React.FC = () => {
   ];
 
   useEffect(() => {
-    checkAuth();
     loadData();
     checkWebGPUSupport();
   }, []);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate('/login', { state: { returnTo: '/pes-investigator' } });
-    }
-  };
 
   const checkWebGPUSupport = () => {
     const supported = LocalLLM.checkWebGPUSupport();
@@ -237,7 +233,7 @@ const PESInvestigatorPage: React.FC = () => {
             Manual Assessment
           </button>
           <button
-            onClick={() => setViewMode('llamaindex')}
+            onClick={() => setShowWaitlist(true)}
             className="inline-flex items-center rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-400"
           >
             <Zap className="mr-2 h-4 w-4" />
@@ -842,6 +838,27 @@ const PESInvestigatorPage: React.FC = () => {
         {viewMode === 'monitor' && <AgentMonitor />}
         {viewMode === 'register' && renderRegisterForm()}
         {renderPromptExamples()}
+        <GuestWizard
+          isOpen={showWaitlist}
+          onClose={() => { setShowWaitlist(false); setWaitlistComplete(false); setWaitlistEmail(''); }}
+          userEmail={waitlistEmail}
+          onComplete={() => { setWaitlistComplete(true); }}
+        />
+        {showWaitlist && waitlistComplete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl text-center">
+              <CheckCircle className="mx-auto mb-4 h-12 w-12 text-emerald-500" />
+              <h2 className="text-2xl font-bold mb-2">Thank you for joining the waiting list!</h2>
+              <p className="text-slate-700 mb-4">We'll notify you as soon as the AI Agent Assessment is available for public access.</p>
+              <button
+                onClick={() => { setShowWaitlist(false); setWaitlistComplete(false); setWaitlistEmail(''); }}
+                className="mt-4 inline-flex items-center rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
