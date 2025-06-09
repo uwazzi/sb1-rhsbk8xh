@@ -211,7 +211,7 @@ const DashboardPage: React.FC = () => {
           <div className="mb-8 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 p-6 text-white">
             <div className="flex items-start space-x-4">
               <div className="rounded-full bg-white/20 p-3">
-                <Crown className="h-6 w-6" />
+                <Globe className="h-6 w-6" />
               </div>
               <div>
                 <h3 className="mb-2 text-lg font-semibold">Explore Community Tests</h3>
