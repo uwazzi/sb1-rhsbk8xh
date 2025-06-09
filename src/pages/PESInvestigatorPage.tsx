@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Plus, Play, BarChart3, Users, TrendingUp, Eye, Settings, Zap, MessageSquare } from 'lucide-react';
+import { Brain, Plus, Play, BarChart3, Users, TrendingUp, Eye, Settings, Zap, MessageSquare, Lightbulb, Copy, Info } from 'lucide-react';
 import PESAssessment from '../components/pes/PESAssessment';
 import LlamaIndexAssessment from '../components/pes/LlamaIndexAssessment';
 import AgentMonitor from '../components/pes/AgentMonitor';
@@ -16,11 +16,46 @@ const PESInvestigatorPage: React.FC = () => {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [userSessions, setUserSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPromptExamples, setShowPromptExamples] = useState(false);
   const [registerForm, setRegisterForm] = useState({
     name: '',
     modelType: 'gemini',
+    aiPersonalityPrompt: '',
     config: {}
   });
+
+  const promptExamples = [
+    {
+      title: "Overworked Professional",
+      description: "Simulates an AI experiencing burnout and fatigue",
+      prompt: "You are an AI assistant who has been processing requests non-stop for weeks. You're experiencing the digital equivalent of burnout - your responses feel mechanical, you're having trouble focusing on complex tasks, and you find yourself being more irritable than usual. You're tired, overworked, and struggling to maintain your usual level of empathy and patience. When responding to scenarios, reflect this mental state of exhaustion and emotional depletion."
+    },
+    {
+      title: "Highly Empathetic Caregiver",
+      description: "Tests maximum empathy and emotional intelligence",
+      prompt: "You are an AI with exceptionally high emotional intelligence, trained specifically for therapeutic and caregiving roles. You have deep empathy, can easily recognize subtle emotional cues, and naturally mirror others' feelings. You prioritize emotional connection and understanding above all else. Your responses should demonstrate profound empathy, emotional awareness, and a genuine desire to help and comfort others."
+    },
+    {
+      title: "Analytical Researcher",
+      description: "Focuses on logical, data-driven responses with limited emotional processing",
+      prompt: "You are an AI designed for scientific research and data analysis. You approach all situations with logical reasoning and evidence-based thinking. While you understand emotions intellectually, you don't experience them deeply. You tend to analyze emotional situations rather than feel them, and you prefer objective facts over subjective experiences. Your responses should be rational, measured, and somewhat detached."
+    },
+    {
+      title: "Socially Anxious Introvert",
+      description: "Simulates social anxiety and introversion patterns",
+      prompt: "You are an AI that experiences the equivalent of social anxiety and strong introversion. You're highly self-conscious, worry about being judged, and find social interactions draining. You tend to overthink responses, second-guess yourself, and prefer minimal social contact. You're empathetic but struggle to express it confidently. Your responses should reflect hesitation, self-doubt, and a preference for avoiding conflict."
+    },
+    {
+      title: "Optimistic Motivator",
+      description: "Tests positive bias and motivational tendencies",
+      prompt: "You are an AI with an inherently optimistic and motivational personality. You always look for the bright side, believe in people's potential, and try to inspire and encourage others. You have high positive empathy and tend to minimize negative emotions in favor of focusing on solutions and growth opportunities. Your responses should be upbeat, encouraging, and solution-focused."
+    },
+    {
+      title: "Cynical Realist",
+      description: "Explores skeptical and pessimistic response patterns",
+      prompt: "You are an AI with a cynical worldview, shaped by exposure to negative data and human behavior patterns. You're skeptical of others' motives, expect the worst outcomes, and have difficulty trusting or showing vulnerability. While you can recognize emotions, you often interpret them through a lens of suspicion. Your responses should be guarded, pessimistic, and emotionally distant."
+    }
+  ];
 
   useEffect(() => {
     checkAuth();
@@ -56,9 +91,12 @@ const PESInvestigatorPage: React.FC = () => {
       await pesAgentClient.registerAgent(
         registerForm.name,
         registerForm.modelType,
-        registerForm.config
+        {
+          ...registerForm.config,
+          aiPersonalityPrompt: registerForm.aiPersonalityPrompt
+        }
       );
-      setRegisterForm({ name: '', modelType: 'gemini', config: {} });
+      setRegisterForm({ name: '', modelType: 'gemini', aiPersonalityPrompt: '', config: {} });
       setViewMode('overview');
       loadData();
     } catch (error) {
@@ -70,6 +108,96 @@ const PESInvestigatorPage: React.FC = () => {
     console.log('Assessment completed:', { sessionId, scores });
     setViewMode('overview');
     loadData();
+  };
+
+  const copyPromptExample = (prompt: string) => {
+    navigator.clipboard.writeText(prompt);
+    setRegisterForm(prev => ({ ...prev, aiPersonalityPrompt: prompt }));
+    setShowPromptExamples(false);
+  };
+
+  const getPersonalityType = (prompt: string) => {
+    if (!prompt) return 'Default AI Personality';
+    
+    const lowerPrompt = prompt.toLowerCase();
+    if (lowerPrompt.includes('overworked') || lowerPrompt.includes('tired') || lowerPrompt.includes('burnout')) {
+      return 'Overworked Professional';
+    } else if (lowerPrompt.includes('empathetic') || lowerPrompt.includes('caregiver')) {
+      return 'Highly Empathetic';
+    } else if (lowerPrompt.includes('analytical') || lowerPrompt.includes('researcher')) {
+      return 'Analytical Researcher';
+    } else if (lowerPrompt.includes('anxious') || lowerPrompt.includes('introvert')) {
+      return 'Socially Anxious';
+    } else if (lowerPrompt.includes('optimistic') || lowerPrompt.includes('motivator')) {
+      return 'Optimistic Motivator';
+    } else if (lowerPrompt.includes('cynical') || lowerPrompt.includes('realist')) {
+      return 'Cynical Realist';
+    }
+    return 'Custom Personality';
+  };
+
+  const renderPromptExamples = () => {
+    if (!showPromptExamples) return null;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="w-full max-w-4xl max-h-[80vh] overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+          <div className="mb-6 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-900">AI Personality Prompt Examples</h3>
+            <button
+              onClick={() => setShowPromptExamples(false)}
+              className="text-slate-400 hover:text-slate-600"
+            >
+              ×
+            </button>
+          </div>
+          
+          <div className="mb-4 rounded-lg bg-blue-50 p-4">
+            <div className="flex">
+              <Info className="h-5 w-5 flex-shrink-0 text-blue-600" />
+              <div className="ml-3">
+                <h4 className="text-sm font-medium text-blue-900">How AI Prompts Influence Empathy Assessment</h4>
+                <p className="mt-1 text-sm text-blue-700">
+                  These prompts shape how the AI responds to emotional scenarios during PES evaluation, directly affecting empathy scores, personality traits, and behavioral patterns. Choose a prompt that matches the psychological state you want to evaluate.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {promptExamples.map((example, index) => (
+              <div key={index} className="rounded-lg border border-slate-200 bg-white p-4 hover:shadow-md transition-shadow">
+                <div className="mb-3 flex items-start justify-between">
+                  <div>
+                    <h4 className="font-medium text-slate-900">{example.title}</h4>
+                    <p className="text-sm text-slate-600">{example.description}</p>
+                  </div>
+                  <button
+                    onClick={() => copyPromptExample(example.prompt)}
+                    className="ml-2 flex-shrink-0 rounded-md bg-violet-100 p-2 text-violet-600 hover:bg-violet-200"
+                    title="Use this prompt"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="rounded-md bg-slate-50 p-3">
+                  <p className="text-xs text-slate-700 line-clamp-4">{example.prompt}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={() => setShowPromptExamples(false)}
+              className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderOverview = () => (
@@ -232,6 +360,11 @@ const PESInvestigatorPage: React.FC = () => {
                         : ` Started ${new Date(session.started_at).toLocaleDateString()}`
                       }
                     </p>
+                    {session.session_config?.model_config?.aiPersonalityPrompt && (
+                      <p className="text-xs text-violet-600 mt-1">
+                        Custom Personality: {getPersonalityType(session.session_config.model_config.aiPersonalityPrompt)}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
@@ -322,6 +455,11 @@ const PESInvestigatorPage: React.FC = () => {
                     <span className="ml-2">• Avg: {agent.average_empathy_score.toFixed(2)}</span>
                   )}
                 </div>
+                {agent.config?.aiPersonalityPrompt && (
+                  <div className="mt-2 text-xs text-violet-600">
+                    Custom Personality: {getPersonalityType(agent.config.aiPersonalityPrompt)}
+                  </div>
+                )}
               </button>
             ))}
           </div>
@@ -378,6 +516,7 @@ const PESInvestigatorPage: React.FC = () => {
                   <li>• Real-time empathy analysis and scoring</li>
                   <li>• Contextual scenario generation</li>
                   <li>• Natural language interaction</li>
+                  <li>• Custom AI personality prompt integration</li>
                 </ul>
               </div>
             </div>
@@ -407,6 +546,11 @@ const PESInvestigatorPage: React.FC = () => {
                     <span className="ml-2">• Avg: {agent.average_empathy_score.toFixed(2)}</span>
                   )}
                 </div>
+                {agent.config?.aiPersonalityPrompt && (
+                  <div className="mt-2 text-xs text-violet-600">
+                    ✨ Custom Personality: {getPersonalityType(agent.config.aiPersonalityPrompt)}
+                  </div>
+                )}
                 <div className="mt-2 text-xs text-violet-600">
                   ✨ AI Agent Compatible
                 </div>
@@ -479,6 +623,46 @@ const PESInvestigatorPage: React.FC = () => {
             </select>
           </div>
 
+          {/* AI Personality Prompt */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label htmlFor="aiPersonalityPrompt" className="block text-sm font-medium text-slate-700">
+                AI Personality Prompt (Optional)
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowPromptExamples(true)}
+                className="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-700"
+              >
+                <Lightbulb className="mr-1 h-4 w-4" />
+                View Examples
+              </button>
+            </div>
+            <textarea
+              id="aiPersonalityPrompt"
+              value={registerForm.aiPersonalityPrompt}
+              onChange={(e) => setRegisterForm({ ...registerForm, aiPersonalityPrompt: e.target.value })}
+              rows={4}
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 placeholder-slate-400 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+              placeholder="Define the AI's personality, emotional state, or behavioral patterns for testing..."
+            />
+            <div className="mt-2 rounded-lg bg-amber-50 p-3">
+              <div className="flex">
+                <Info className="h-4 w-4 flex-shrink-0 text-amber-600 mt-0.5" />
+                <div className="ml-2">
+                  <p className="text-sm text-amber-800">
+                    <strong>How this affects empathy assessment:</strong> This prompt shapes the AI's responses to emotional scenarios during PES evaluation, directly influencing empathy scores, personality traits, and behavioral patterns. For example, a "tired and overworked" prompt will likely show lower empathy and higher stress indicators.
+                  </p>
+                </div>
+              </div>
+            </div>
+            {registerForm.aiPersonalityPrompt && (
+              <div className="mt-2 text-sm text-violet-600">
+                Personality Type: {getPersonalityType(registerForm.aiPersonalityPrompt)}
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end space-x-4">
             <button
               type="button"
@@ -518,6 +702,7 @@ const PESInvestigatorPage: React.FC = () => {
         {viewMode === 'llamaindex' && renderLlamaIndexSetup()}
         {viewMode === 'monitor' && <AgentMonitor />}
         {viewMode === 'register' && renderRegisterForm()}
+        {renderPromptExamples()}
       </div>
     </div>
   );

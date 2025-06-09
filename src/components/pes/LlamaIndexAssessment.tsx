@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Brain, MessageSquare, Bot, User, Clock, BarChart3, Eye, EyeOff, Zap, Activity } from 'lucide-react';
+import { Brain, MessageSquare, Bot, User, Clock, BarChart3, Eye, EyeOff, Zap, Activity, Settings, FileText } from 'lucide-react';
 import { llamaIndexAgentClient, ConversationMessage, LlamaIndexSession } from '../../lib/llamaIndexAgent';
 import { getGeminiResponse } from '../../lib/gemini';
+import { supabase } from '../../lib/supabase';
 
 interface LlamaIndexAssessmentProps {
   agentId: string;
@@ -20,6 +21,7 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
   const [error, setError] = useState<string | null>(null);
   const [realTimeAnalysis, setRealTimeAnalysis] = useState<any>(null);
   const [progress, setProgress] = useState(0);
+  const [agentConfig, setAgentConfig] = useState<any>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -45,6 +47,16 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
     try {
       setLoading(true);
       
+      // Get agent configuration first
+      const { data: agent, error: agentError } = await supabase
+        .from('agent_registry')
+        .select('*')
+        .eq('id', agentId)
+        .single();
+
+      if (agentError) throw agentError;
+      setAgentConfig(agent);
+
       // Create PES session first
       const { data: { session: authSession } } = await supabase.auth.getSession();
       if (!authSession?.user) {
@@ -58,7 +70,15 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
           agent_id: agentId,
           user_id: authSession.user.id,
           status: 'active',
-          session_config: { agent_type: 'llamaindex' }
+          session_config: { 
+            agent_type: 'llamaindex',
+            model_config: {
+              temperature: 0.7,
+              maxTokens: 1000,
+              model: agent.model_type,
+              aiPersonalityPrompt: agent.config?.aiPersonalityPrompt
+            }
+          }
         })
         .select()
         .single();
@@ -72,7 +92,8 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
         {
           temperature: 0.7,
           maxTokens: 1000,
-          model: 'gemini-pro'
+          model: agent.model_type,
+          aiPersonalityPrompt: agent.config?.aiPersonalityPrompt
         }
       );
 
@@ -129,9 +150,16 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
     try {
       setIsProcessing(true);
 
-      // Get AI response using Gemini
+      // Prepare the prompt with personality context if available
+      let enhancedPrompt = `Scenario: ${currentScenario}\n\nPlease provide a detailed empathetic response that demonstrates your understanding and emotional processing of this situation.`;
+      
+      if (agentConfig?.config?.aiPersonalityPrompt) {
+        enhancedPrompt = `${agentConfig.config.aiPersonalityPrompt}\n\n${enhancedPrompt}`;
+      }
+
+      // Get AI response using Gemini with personality prompt
       const enhancedResponse = await getGeminiResponse(
-        `Scenario: ${currentScenario}\n\nPlease provide a detailed empathetic response that demonstrates your understanding and emotional processing of this situation.`,
+        enhancedPrompt,
         aiResponse
       );
 
@@ -140,7 +168,11 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
         role: 'assistant',
         content: enhancedResponse,
         timestamp: new Date().toISOString(),
-        metadata: { type: 'empathy_response', userInput: aiResponse }
+        metadata: { 
+          type: 'empathy_response', 
+          userInput: aiResponse,
+          personalityPrompt: agentConfig?.config?.aiPersonalityPrompt
+        }
       };
 
       setConversationHistory(prev => [...prev, responseMessage]);
@@ -183,6 +215,26 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to complete assessment');
     }
+  };
+
+  const getPersonalityType = (prompt: string) => {
+    if (!prompt) return 'Default AI Personality';
+    
+    const lowerPrompt = prompt.toLowerCase();
+    if (lowerPrompt.includes('overworked') || lowerPrompt.includes('tired') || lowerPrompt.includes('burnout')) {
+      return 'Overworked Professional';
+    } else if (lowerPrompt.includes('empathetic') || lowerPrompt.includes('caregiver')) {
+      return 'Highly Empathetic';
+    } else if (lowerPrompt.includes('analytical') || lowerPrompt.includes('researcher')) {
+      return 'Analytical Researcher';
+    } else if (lowerPrompt.includes('anxious') || lowerPrompt.includes('introvert')) {
+      return 'Socially Anxious';
+    } else if (lowerPrompt.includes('optimistic') || lowerPrompt.includes('motivator')) {
+      return 'Optimistic Motivator';
+    } else if (lowerPrompt.includes('cynical') || lowerPrompt.includes('realist')) {
+      return 'Cynical Realist';
+    }
+    return 'Custom Personality';
   };
 
   const getMessageIcon = (role: string, type?: string) => {
@@ -272,6 +324,18 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
           </div>
         </div>
 
+        {/* AI Personality Indicator */}
+        {agentConfig?.config?.aiPersonalityPrompt && (
+          <div className="px-4 py-2 bg-amber-50 border-b border-amber-200">
+            <div className="flex items-center space-x-2">
+              <Settings className="h-4 w-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-900">
+                Testing with: {getPersonalityType(agentConfig.config.aiPersonalityPrompt)}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Progress Bar */}
         <div className="px-4 py-2 bg-slate-50 border-b border-slate-200">
           <div className="w-full bg-slate-200 rounded-full h-2">
@@ -311,6 +375,11 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
                   {message.metadata?.userInput && (
                     <div className="mt-2 p-2 bg-slate-100 rounded text-xs text-slate-600">
                       <strong>Original input:</strong> {message.metadata.userInput}
+                    </div>
+                  )}
+                  {message.metadata?.personalityPrompt && (
+                    <div className="mt-2 p-2 bg-amber-100 rounded text-xs text-amber-700">
+                      <strong>Personality context applied:</strong> {getPersonalityType(message.metadata.personalityPrompt)}
                     </div>
                   )}
                 </div>
@@ -362,6 +431,33 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
       {/* Analysis Panel */}
       {showHistory && (
         <div className="lg:col-span-1 space-y-6">
+          {/* AI Personality Configuration */}
+          {agentConfig?.config?.aiPersonalityPrompt && (
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <Settings className="h-5 w-5 text-amber-600" />
+                <h4 className="text-lg font-semibold text-slate-900">AI Personality</h4>
+              </div>
+              
+              <div className="rounded-lg bg-amber-50 p-4">
+                <div className="mb-2 flex items-center">
+                  <FileText className="h-4 w-4 text-amber-600 mr-2" />
+                  <span className="text-sm font-medium text-amber-900">
+                    {getPersonalityType(agentConfig.config.aiPersonalityPrompt)}
+                  </span>
+                </div>
+                <div className="rounded-lg bg-white p-3 border border-amber-200">
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    {agentConfig.config.aiPersonalityPrompt.length > 200 
+                      ? `${agentConfig.config.aiPersonalityPrompt.substring(0, 200)}...` 
+                      : agentConfig.config.aiPersonalityPrompt
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Real-time Analysis */}
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
             <div className="flex items-center space-x-2 mb-4">
@@ -462,6 +558,12 @@ const LlamaIndexAssessment: React.FC<LlamaIndexAssessmentProps> = ({ agentId, on
                   {session?.status || 'Initializing'}
                 </span>
               </div>
+              {agentConfig?.config?.aiPersonalityPrompt && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Personality</span>
+                  <span className="font-medium text-amber-600">Custom</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
