@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Plus, Play, BarChart3, Users, TrendingUp, Eye, Settings } from 'lucide-react';
+import { Brain, Plus, Play, BarChart3, Users, TrendingUp, Eye, Settings, Zap, MessageSquare } from 'lucide-react';
 import PESAssessment from '../components/pes/PESAssessment';
+import LlamaIndexAssessment from '../components/pes/LlamaIndexAssessment';
 import AgentMonitor from '../components/pes/AgentMonitor';
 import { pesAgentClient, AgentRegistration } from '../lib/pesAgent';
 import { supabase } from '../lib/supabase';
 
-type ViewMode = 'overview' | 'assessment' | 'monitor' | 'register';
+type ViewMode = 'overview' | 'assessment' | 'llamaindex' | 'monitor' | 'register';
 
 const PESInvestigatorPage: React.FC = () => {
   const navigate = useNavigate();
@@ -90,7 +91,14 @@ const PESInvestigatorPage: React.FC = () => {
             className="inline-flex items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-violet-600 hover:bg-violet-50"
           >
             <Play className="mr-2 h-4 w-4" />
-            Start Assessment
+            Manual Assessment
+          </button>
+          <button
+            onClick={() => setViewMode('llamaindex')}
+            className="inline-flex items-center rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-400"
+          >
+            <Zap className="mr-2 h-4 w-4" />
+            AI Agent Assessment
           </button>
           <button
             onClick={() => setViewMode('monitor')}
@@ -105,6 +113,63 @@ const PESInvestigatorPage: React.FC = () => {
           >
             <Plus className="mr-2 h-4 w-4" />
             Register Agent
+          </button>
+        </div>
+      </div>
+
+      {/* Assessment Types */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center space-x-3 mb-4">
+            <MessageSquare className="h-8 w-8 text-blue-600" />
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Manual Assessment</h3>
+              <p className="text-sm text-slate-600">Traditional questionnaire-based evaluation</p>
+            </div>
+          </div>
+          <p className="text-slate-700 mb-4">
+            Present PES items directly to the AI system and collect responses through a structured questionnaire format.
+          </p>
+          <button
+            onClick={() => setViewMode('assessment')}
+            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+          >
+            <Play className="mr-2 h-4 w-4" />
+            Start Manual Assessment
+          </button>
+        </div>
+
+        <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center space-x-3 mb-4">
+            <Zap className="h-8 w-8 text-violet-600" />
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">AI Agent Assessment</h3>
+              <p className="text-sm text-slate-600">LlamaIndex-powered conversational evaluation</p>
+            </div>
+          </div>
+          <p className="text-slate-700 mb-4">
+            Use an intelligent agent to conduct natural conversations that reveal empathetic capabilities through contextual scenarios.
+          </p>
+          <div className="space-y-2 mb-4">
+            <div className="flex items-center text-xs text-slate-600">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+              Live conversation tracking
+            </div>
+            <div className="flex items-center text-xs text-slate-600">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+              Real-time empathy analysis
+            </div>
+            <div className="flex items-center text-xs text-slate-600">
+              <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+              Contextual scenario generation
+            </div>
+          </div>
+          <button
+            onClick={() => setViewMode('llamaindex')}
+            className="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-700"
+          >
+            <Zap className="mr-2 h-4 w-4" />
+            Start AI Agent Assessment
           </button>
         </div>
       </div>
@@ -154,14 +219,20 @@ const PESInvestigatorPage: React.FC = () => {
           <div className="space-y-4">
             {userSessions.slice(0, 5).map((session) => (
               <div key={session.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-slate-900">{session.agent_registry.name}</p>
-                  <p className="text-sm text-slate-600">
-                    {session.status === 'completed' 
-                      ? `Completed ${new Date(session.completed_at).toLocaleDateString()}`
-                      : `Started ${new Date(session.started_at).toLocaleDateString()}`
-                    }
-                  </p>
+                <div className="flex items-center space-x-3">
+                  <div className="text-xl">
+                    {session.session_config?.agent_type === 'llamaindex' ? '🤖' : '📝'}
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">{session.agent_registry.name}</p>
+                    <p className="text-sm text-slate-600">
+                      {session.session_config?.agent_type === 'llamaindex' ? 'AI Agent Assessment' : 'Manual Assessment'} • 
+                      {session.status === 'completed' 
+                        ? ` Completed ${new Date(session.completed_at).toLocaleDateString()}`
+                        : ` Started ${new Date(session.started_at).toLocaleDateString()}`
+                      }
+                    </p>
+                  </div>
                 </div>
                 <div className="text-right">
                   {session.status === 'completed' ? (
@@ -184,13 +255,22 @@ const PESInvestigatorPage: React.FC = () => {
           <div className="text-center py-8">
             <Brain className="mx-auto h-12 w-12 text-slate-400" />
             <p className="mt-4 text-slate-600">No assessments yet. Start your first PES evaluation!</p>
-            <button
-              onClick={() => setViewMode('assessment')}
-              className="mt-4 inline-flex items-center rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
-            >
-              <Play className="mr-2 h-4 w-4" />
-              Start Assessment
-            </button>
+            <div className="mt-4 flex justify-center space-x-4">
+              <button
+                onClick={() => setViewMode('assessment')}
+                className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <Play className="mr-2 h-4 w-4" />
+                Manual Assessment
+              </button>
+              <button
+                onClick={() => setViewMode('llamaindex')}
+                className="inline-flex items-center rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+              >
+                <Zap className="mr-2 h-4 w-4" />
+                AI Agent Assessment
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -200,7 +280,7 @@ const PESInvestigatorPage: React.FC = () => {
   const renderAssessmentSetup = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Start PES Assessment</h2>
+        <h2 className="text-2xl font-bold text-slate-900">Start Manual PES Assessment</h2>
         <button
           onClick={() => setViewMode('overview')}
           className="text-sm text-slate-600 hover:text-slate-900"
@@ -241,6 +321,94 @@ const PESInvestigatorPage: React.FC = () => {
                   {agent.average_empathy_score && (
                     <span className="ml-2">• Avg: {agent.average_empathy_score.toFixed(2)}</span>
                   )}
+                </div>
+              </button>
+            ))}
+          </div>
+          
+          {agents.length === 0 && (
+            <div className="text-center py-8">
+              <Settings className="mx-auto h-12 w-12 text-slate-400" />
+              <p className="mt-4 text-slate-600">No agents registered yet.</p>
+              <button
+                onClick={() => setViewMode('register')}
+                className="mt-4 inline-flex items-center rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Register First Agent
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderLlamaIndexSetup = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">AI Agent PES Assessment</h2>
+          <p className="text-slate-600">Conversational empathy evaluation with live prompt tracking</p>
+        </div>
+        <button
+          onClick={() => setViewMode('overview')}
+          className="text-sm text-slate-600 hover:text-slate-900"
+        >
+          ← Back to Overview
+        </button>
+      </div>
+
+      {selectedAgent ? (
+        <LlamaIndexAssessment
+          agentId={selectedAgent}
+          onComplete={handleAssessmentComplete}
+          onCancel={() => setSelectedAgent(null)}
+        />
+      ) : (
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Select an Agent for AI Assessment</h3>
+          <div className="mb-6 p-4 bg-violet-50 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <Zap className="h-5 w-5 text-violet-600 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-medium text-violet-900">AI Agent Assessment Features</h4>
+                <ul className="mt-2 text-sm text-violet-700 space-y-1">
+                  <li>• Live conversation tracking with full prompt history</li>
+                  <li>• Real-time empathy analysis and scoring</li>
+                  <li>• Contextual scenario generation</li>
+                  <li>• Natural language interaction</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {agents.map((agent) => (
+              <button
+                key={agent.id}
+                onClick={() => setSelectedAgent(agent.id)}
+                className="text-left p-4 border border-slate-200 rounded-lg hover:border-violet-300 hover:bg-violet-50 transition-all"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="text-2xl">
+                    {agent.model_type === 'gemini' ? '🔮' : 
+                     agent.model_type === 'gpt-4' ? '🤖' : 
+                     agent.model_type === 'claude' ? '🧠' : '⚡'}
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">{agent.name}</p>
+                    <p className="text-sm text-slate-600">{agent.model_type}</p>
+                  </div>
+                </div>
+                <div className="mt-3 text-sm text-slate-600">
+                  {agent.total_tests} tests completed
+                  {agent.average_empathy_score && (
+                    <span className="ml-2">• Avg: {agent.average_empathy_score.toFixed(2)}</span>
+                  )}
+                </div>
+                <div className="mt-2 text-xs text-violet-600">
+                  ✨ AI Agent Compatible
                 </div>
               </button>
             ))}
@@ -347,6 +515,7 @@ const PESInvestigatorPage: React.FC = () => {
       <div className="container-custom">
         {viewMode === 'overview' && renderOverview()}
         {viewMode === 'assessment' && renderAssessmentSetup()}
+        {viewMode === 'llamaindex' && renderLlamaIndexSetup()}
         {viewMode === 'monitor' && <AgentMonitor />}
         {viewMode === 'register' && renderRegisterForm()}
       </div>
