@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, BarChart2, FileText, Lock, Scale, Shield, Bot, Cpu, Zap, Eye } from 'lucide-react';
+import { Brain, BarChart2, FileText, Lock, Scale, Shield, Bot, Cpu, Zap, Eye, AlertTriangle } from 'lucide-react';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 const HomePage: React.FC = () => {
   return (
@@ -20,6 +21,22 @@ const HomePage: React.FC = () => {
               <p className="mb-8 text-lg text-slate-200 md:text-xl">
                 After decades of algorithmic profiling of humans, it's time for AI to undergo the same rigorous psychological assessment. Ensure your AI systems meet the same standards we're held to.
               </p>
+              
+              {/* Demo Mode Notice */}
+              {!isSupabaseConfigured && (
+                <div className="mb-6 rounded-lg bg-amber-900/30 border border-amber-700/50 p-4">
+                  <div className="flex items-start space-x-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-400 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium text-amber-200">Demo Mode</h4>
+                      <p className="text-sm text-amber-300 mt-1">
+                        Running with local LLM only. Full privacy, no backend required. Perfect for testing!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex flex-wrap gap-4">
                 <Link
                   to="/empathy-investigator"
@@ -99,7 +116,7 @@ const HomePage: React.FC = () => {
               </div>
               <h3 className="mb-3 text-xl font-semibold">Local LLM Processing</h3>
               <p className="mb-4 text-slate-600">
-                Run empathy assessments entirely in your browser using WebLLM. Complete privacy with no data leaving your device.
+                Run empathy assessments entirely in your browser using WebLLM. No data leaves your device, ensuring complete privacy.
               </p>
               <Link
                 to="/empathy-investigator"

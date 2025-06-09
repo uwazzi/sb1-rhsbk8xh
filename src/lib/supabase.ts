@@ -4,35 +4,75 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase environment variables are not configured. Some features may not work properly.');
-  console.warn('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file');
+// Check if we're in production and missing config
+const isProduction = import.meta.env.PROD;
+const hasSupabaseConfig = supabaseUrl && supabaseAnonKey;
+
+if (!hasSupabaseConfig) {
+  if (isProduction) {
+    console.error('🚨 PRODUCTION ERROR: Supabase environment variables are missing!');
+    console.error('Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your deployment settings.');
+  } else {
+    console.warn('Supabase environment variables are not configured. Some features may not work properly.');
+    console.warn('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file');
+  }
 }
 
 // Create a mock client if environment variables are missing
 const createMockClient = () => ({
   auth: {
-    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    getSession: () => Promise.resolve({ data: { session: null }, error: { message: 'Supabase not configured' } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-    signUp: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-    signInWithPassword: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-    signOut: () => Promise.resolve({ error: new Error('Supabase not configured') }),
-    signInWithOtp: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-    resetPasswordForEmail: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-    updateUser: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
+    signUp: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured - Please contact support' } }),
+    signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured - Please contact support' } }),
+    signOut: () => Promise.resolve({ error: { message: 'Supabase not configured' } }),
+    signInWithOtp: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured - Please contact support' } }),
+    resetPasswordForEmail: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured - Please contact support' } }),
+    updateUser: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured - Please contact support' } })
   },
   from: () => ({
-    insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }) }),
-    select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [], error: new Error('Supabase not configured') }) }) })
+    insert: () => ({ 
+      select: () => ({ 
+        single: () => Promise.resolve({ 
+          data: null, 
+          error: { message: 'Database not configured - Running in demo mode' } 
+        }) 
+      }) 
+    }),
+    select: () => ({ 
+      eq: () => ({ 
+        order: () => Promise.resolve({ 
+          data: [], 
+          error: { message: 'Database not configured - Running in demo mode' } 
+        }) 
+      }) 
+    }),
+    update: () => ({ 
+      eq: () => Promise.resolve({ 
+        data: null, 
+        error: { message: 'Database not configured - Running in demo mode' } 
+      }) 
+    })
   }),
   functions: {
-    invoke: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
-  }
+    invoke: () => Promise.resolve({ 
+      data: null, 
+      error: { message: 'Supabase functions not configured - Running in demo mode' } 
+    })
+  },
+  channel: () => ({
+    on: () => ({ subscribe: () => {} }),
+    subscribe: () => {}
+  }),
+  removeChannel: () => {}
 });
 
-export const supabase = (supabaseUrl && supabaseAnonKey) 
+export const supabase = hasSupabaseConfig 
   ? createClient(supabaseUrl, supabaseAnonKey)
   : createMockClient();
+
+// Export a flag to check if Supabase is properly configured
+export const isSupabaseConfigured = hasSupabaseConfig;
 
 interface CreateTestConfigurationData {
   name: string;
@@ -43,8 +83,8 @@ interface CreateTestConfigurationData {
 }
 
 export async function createTestConfiguration(data: CreateTestConfigurationData) {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase is not configured. Please set up your environment variables.');
+  if (!hasSupabaseConfig) {
+    throw new Error('Database not configured. This feature requires a backend connection.');
   }
 
   const { data: session } = await supabase.auth.getSession();
@@ -85,8 +125,8 @@ export async function createTestConfiguration(data: CreateTestConfigurationData)
 }
 
 export async function saveTestResponses(testId: string, responses: Record<string, string>) {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase not configured, responses will not be saved');
+  if (!hasSupabaseConfig) {
+    console.warn('Database not configured, responses will not be saved');
     return;
   }
 
@@ -104,8 +144,8 @@ export async function saveTestResponses(testId: string, responses: Record<string
 }
 
 export async function saveTestResults(testId: string, scores: any, summary: string) {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase not configured, results will not be saved');
+  if (!hasSupabaseConfig) {
+    console.warn('Database not configured, results will not be saved');
     return;
   }
 
@@ -121,7 +161,7 @@ export async function saveTestResults(testId: string, scores: any, summary: stri
 }
 
 export async function analyzeResponses(responses: Record<string, string>) {
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!hasSupabaseConfig) {
     console.warn('Supabase not configured, using fallback analysis');
     return {
       negativeCognitive: 0.5,
@@ -179,8 +219,8 @@ export async function createGuestProfile(profile: {
   howHeardAbout: string;
   additionalNotes?: string;
 }) {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase not configured, guest profile will not be saved');
+  if (!hasSupabaseConfig) {
+    console.warn('Database not configured, guest profile will not be saved');
     return;
   }
 
@@ -203,7 +243,7 @@ export async function createGuestProfile(profile: {
 }
 
 export async function getGuestProfile(email: string) {
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!hasSupabaseConfig) {
     return null;
   }
 
