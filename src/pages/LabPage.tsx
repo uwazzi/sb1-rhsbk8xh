@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Brain, MessageSquare, Bot, Loader2, ArrowRight, Settings, Cpu, Zap, Play, FileText } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Brain, MessageSquare, Bot, Loader2, ArrowRight, Settings, Cpu, Zap, Play, FileText, AlertCircle } from 'lucide-react';
 import { pesQuestions } from '../data/mockData';
-import { getGeminiResponse } from '../lib/gemini';
+import { LocalLLM, EmpathyAnalysisResult } from '../lib/webllm';
 import { supabase, analyzeResponses } from '../lib/supabase';
 
 interface AgentMessage {
@@ -35,6 +35,7 @@ const DEFAULT_SCORES = {
 
 const LabPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -42,11 +43,13 @@ const LabPage: React.FC = () => {
   const [test, setTest] = useState<TestConfiguration | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState('');
-  const [llmModel, setLlmModel] = useState('Gemini 2.0 Flash');
+  const [llmModel, setLlmModel] = useState('Local WebLLM');
   const [responseTime, setResponseTime] = useState<number | null>(null);
   const [totalTokens, setTotalTokens] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [localLLM] = useState(() => new LocalLLM());
+  const [isLLMReady, setIsLLMReady] = useState(false);
 
   useEffect(() => {
     loadTestConfiguration();
@@ -102,10 +105,36 @@ const LabPage: React.FC = () => {
     }
   };
 
+  const initializeLLM = async () => {
+    try {
+      setIsProcessing(true);
+      await localLLM.initialize();
+      setIsLLMReady(true);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to initialize local LLM');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const analyzeResponse = async (response: string, questionId: string) => {
     try {
-      const result = await analyzeResponses({ [questionId]: response });
-      return result;
+      if (isLLMReady) {
+        // Use local LLM for analysis
+        const responses = { [questionId]: response };
+        const result = await localLLM.assessEmpathy(responses);
+        return {
+          negativeCognitive: result.subscaleAnalysis.NCE / 100,
+          positiveCognitive: result.subscaleAnalysis.PCE / 100,
+          negativeAffective: result.subscaleAnalysis.NAE / 100,
+          positiveAffective: result.subscaleAnalysis.PAE / 100,
+          overall: result.empathyScore / 100
+        };
+      } else {
+        // Fallback to default scores
+        return DEFAULT_SCORES;
+      }
     } catch (error) {
       console.error('Failed to analyze response:', error);
       return DEFAULT_SCORES;
@@ -113,10 +142,15 @@ const LabPage: React.FC = () => {
   };
 
   const startAssessment = async () => {
+    if (!isLLMReady) {
+      await initializeLLM();
+      if (!isLLMReady) return;
+    }
+
     setHasStarted(true);
     const initialMessage: AgentMessage = {
       role: 'agent',
-      content: `Hello! I'm your empathy assessment agent. I'll be evaluating the emotional intelligence and empathetic capabilities of your AI system${customPrompt ? ' with the custom personality prompt you provided' : ''}. Let's begin with the first question.`,
+      content: `Hello! I'm your empathy assessment agent using local LLM technology. I'll be evaluating the emotional intelligence and empathetic capabilities of your AI system${customPrompt ? ' with the custom personality prompt you provided' : ''}. All processing happens locally in your browser for complete privacy. Let's begin with the first question.`,
       timestamp: new Date()
     };
     setMessages([initialMessage]);
@@ -140,18 +174,17 @@ const LabPage: React.FC = () => {
     try {
       const startTime = Date.now();
       
-      // Use custom prompt if available, otherwise use the question prompt directly
-      const fullPrompt = customPrompt 
-        ? `${customPrompt}\n\nNow respond to this scenario: ${question.prompt}`
-        : question.prompt;
-      
-      const response = await getGeminiResponse(fullPrompt);
+      // Use local LLM to generate response
+      const response = await localLLM.generateEmpathyResponse(
+        question.prompt,
+        customPrompt
+      );
       
       const endTime = Date.now();
       setResponseTime(endTime - startTime);
       
       // Estimate tokens (rough approximation: 1 token ≈ 4 characters)
-      const estimatedTokens = Math.ceil((fullPrompt.length + response.length) / 4);
+      const estimatedTokens = Math.ceil((question.prompt.length + response.length) / 4);
       setTotalTokens(prev => prev + estimatedTokens);
 
       const aiMessage: AgentMessage = {
@@ -162,7 +195,7 @@ const LabPage: React.FC = () => {
 
       setMessages(prev => [...prev, aiMessage]);
 
-      // Analyze response with fallback handling
+      // Analyze response with local LLM
       const analysis = await analyzeResponse(response, question.id);
       
       if (analysis) {
@@ -219,18 +252,24 @@ const LabPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error && !test) {
     return (
       <div className="min-h-screen bg-slate-50 py-8">
         <div className="container-custom max-w-4xl">
           <div className="rounded-lg bg-red-50 p-6">
             <div className="flex">
               <div className="flex-shrink-0">
-                <Brain className="h-5 w-5 text-red-400" />
+                <AlertCircle className="h-5 w-5 text-red-400" />
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-red-800">Error</h3>
                 <p className="mt-1 text-sm text-red-700">{error}</p>
+                <button
+                  onClick={() => navigate('/empathy-investigator')}
+                  className="mt-4 rounded-md bg-red-100 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-200"
+                >
+                  Go to Empathy Investigator
+                </button>
               </div>
             </div>
           </div>
@@ -247,6 +286,12 @@ const LabPage: React.FC = () => {
             <div className="text-center">
               <Brain className="mx-auto h-12 w-12 text-slate-400" />
               <p className="mt-4 text-slate-600">Test configuration not found</p>
+              <button
+                onClick={() => navigate('/empathy-investigator')}
+                className="mt-4 rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+              >
+                Go to Empathy Investigator
+              </button>
             </div>
           </div>
         </div>
@@ -263,8 +308,8 @@ const LabPage: React.FC = () => {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-violet-100">
               <Brain className="h-8 w-8 text-violet-600" />
             </div>
-            <h1 className="mb-2 text-3xl font-bold text-slate-900">Empathy Assessment Lab</h1>
-            <p className="text-lg text-slate-600">Ready to evaluate your AI's emotional intelligence</p>
+            <h1 className="mb-2 text-3xl font-bold text-slate-900">Local LLM Empathy Assessment</h1>
+            <p className="text-lg text-slate-600">Privacy-first empathy evaluation using local language models</p>
           </div>
 
           <div className="space-y-6">
@@ -279,7 +324,7 @@ const LabPage: React.FC = () => {
                 <div>
                   <div className="text-sm font-medium text-slate-700">LLM Model</div>
                   <div className="flex items-center">
-                    <div className="mr-2 h-2 w-2 rounded-full bg-green-500"></div>
+                    <div className={`mr-2 h-2 w-2 rounded-full ${isLLMReady ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                     <span className="text-lg text-slate-900">{llmModel}</span>
                   </div>
                 </div>
@@ -288,14 +333,50 @@ const LabPage: React.FC = () => {
                   <div className="text-lg text-slate-900">{pesQuestions.length} empathy scenarios</div>
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-slate-700">Estimated Time</div>
-                  <div className="text-lg text-slate-900">5-10 minutes</div>
+                  <div className="text-sm font-medium text-slate-700">Privacy</div>
+                  <div className="text-lg text-slate-900">100% Local Processing</div>
                 </div>
               </div>
             </div>
 
+            {/* Local LLM Status */}
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center">
+                <Cpu className="mr-3 h-6 w-6 text-emerald-600" />
+                <h2 className="text-xl font-semibold text-slate-900">Local LLM Status</h2>
+              </div>
+              
+              {!isLLMReady && (
+                <div className="mb-4 rounded-lg bg-blue-50 p-4">
+                  <div className="flex items-start space-x-3">
+                    <Cpu className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-900">Local LLM Required</h4>
+                      <p className="text-sm text-blue-700 mt-1">
+                        This assessment uses local language models for complete privacy. The model will be downloaded and initialized in your browser.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isLLMReady && (
+                <div className="mb-4 rounded-lg bg-green-50 p-4">
+                  <div className="flex items-start space-x-3">
+                    <Zap className="h-5 w-5 text-green-600 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium text-green-900">Local LLM Ready</h4>
+                      <p className="text-sm text-green-700 mt-1">
+                        The language model is loaded and ready for empathy assessment.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Custom Prompt Display */}
-            {customPrompt ? (
+            {customPrompt && (
               <div className="rounded-lg bg-white p-6 shadow-sm">
                 <div className="mb-4 flex items-center">
                   <Settings className="mr-3 h-6 w-6 text-amber-600" />
@@ -324,22 +405,10 @@ const LabPage: React.FC = () => {
                     <div className="ml-3">
                       <h4 className="text-sm font-medium text-blue-900">How this affects the assessment:</h4>
                       <p className="mt-1 text-sm text-blue-700">
-                        This personality prompt will be applied to each empathy scenario, influencing how the AI responds to emotional situations. The assessment will measure how this personality affects empathetic capabilities across different emotional contexts.
+                        This personality prompt will be applied to each empathy scenario, influencing how the local LLM responds to emotional situations. The assessment will measure how this personality affects empathetic capabilities across different emotional contexts.
                       </p>
                     </div>
                   </div>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-lg bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center">
-                  <Bot className="mr-3 h-6 w-6 text-slate-600" />
-                  <h2 className="text-xl font-semibold text-slate-900">Default AI Personality</h2>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-4">
-                  <p className="text-slate-700">
-                    No custom personality prompt provided. The AI will respond with its default personality and training.
-                  </p>
                 </div>
               </div>
             )}
@@ -367,13 +436,23 @@ const LabPage: React.FC = () => {
             <div className="text-center">
               <button
                 onClick={startAssessment}
-                className="inline-flex items-center rounded-lg bg-violet-600 px-8 py-4 text-lg font-medium text-white shadow-lg transition-all hover:bg-violet-700 hover:shadow-xl"
+                disabled={isProcessing}
+                className="inline-flex items-center rounded-lg bg-violet-600 px-8 py-4 text-lg font-medium text-white shadow-lg transition-all hover:bg-violet-700 hover:shadow-xl disabled:opacity-50"
               >
-                <Play className="mr-3 h-6 w-6" />
-                Start Empathy Assessment
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-3 h-6 w-6 animate-spin" />
+                    Initializing Local LLM...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-3 h-6 w-6" />
+                    Start Local Empathy Assessment
+                  </>
+                )}
               </button>
               <p className="mt-3 text-sm text-slate-600">
-                The assessment will begin immediately and run automatically through all scenarios
+                The assessment will run entirely in your browser for complete privacy
               </p>
             </div>
           </div>
@@ -382,7 +461,7 @@ const LabPage: React.FC = () => {
     );
   }
 
-  // Main assessment interface (existing code)
+  // Main assessment interface (existing code with local LLM updates)
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="grid h-screen grid-cols-2">
@@ -395,8 +474,8 @@ const LabPage: React.FC = () => {
                   <Brain className="h-5 w-5 text-violet-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">Empathy Assessment Lab</h2>
-                  <p className="text-sm text-slate-500">Testing emotional intelligence capabilities</p>
+                  <h2 className="text-lg font-semibold text-slate-900">Local LLM Empathy Assessment</h2>
+                  <p className="text-sm text-slate-500">Privacy-first emotional intelligence evaluation</p>
                 </div>
               </div>
               
@@ -449,7 +528,7 @@ const LabPage: React.FC = () => {
                         <MessageSquare className="mr-2 h-4 w-4" />
                       )}
                       <span className="text-xs font-medium">
-                        {message.role === 'agent' ? 'Assessment Agent' : `${llmModel} Response`}
+                        {message.role === 'agent' ? 'Assessment Agent' : `Local LLM Response`}
                       </span>
                     </div>
                     <p className="text-sm">{message.content}</p>
@@ -466,7 +545,7 @@ const LabPage: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
                     <span className="text-sm text-slate-600">
-                      {llmModel} is processing...
+                      Local LLM is processing...
                     </span>
                   </div>
                 </div>
@@ -493,7 +572,7 @@ const LabPage: React.FC = () => {
             <h2 className="text-xl font-semibold text-slate-900">Real-time Analysis</h2>
             <div className="flex items-center space-x-2 rounded-lg bg-white px-3 py-2 shadow-sm">
               <Cpu className="h-4 w-4 text-slate-600" />
-              <span className="text-sm font-medium text-slate-700">{llmModel}</span>
+              <span className="text-sm font-medium text-slate-700">Local Processing</span>
             </div>
           </div>
 
@@ -502,7 +581,7 @@ const LabPage: React.FC = () => {
             <h3 className="mb-3 text-sm font-medium text-slate-900">Performance Metrics</h3>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
-                <div className="text-lg font-semibold text-violet-600">{llmModel}</div>
+                <div className="text-lg font-semibold text-violet-600">Local LLM</div>
                 <div className="text-xs text-slate-500">Model</div>
               </div>
               <div className="text-center">
@@ -644,6 +723,12 @@ const LabPage: React.FC = () => {
                       {totalTokens.toLocaleString()}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Processing</span>
+                    <span className="font-medium text-emerald-600">
+                      100% Local
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -672,7 +757,7 @@ const LabPage: React.FC = () => {
           {!scores && (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
-                <Bot className="mx-auto mb-4 h-12 w-12 text-slate-400" />
+                <Cpu className="mx-auto mb-4 h-12 w-12 text-slate-400" />
                 <p className="text-slate-600 mb-2">
                   Assessment will begin once the first response is processed...
                 </p>

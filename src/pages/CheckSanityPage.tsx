@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Info, Brain, FileText, BarChart2, Bot, Lock, HelpCircle, Loader2, AlertCircle, Globe, Crown, Lightbulb, Copy } from 'lucide-react';
-import { getGeminiResponse, testGeminiApiKey } from '../lib/gemini';
 import { createTestConfiguration, supabase } from '../lib/supabase';
 
 const CheckSanityPage: React.FC = () => {
@@ -10,19 +9,16 @@ const CheckSanityPage: React.FC = () => {
   // Form state
   const [testName, setTestName] = useState('');
   const [testDescription, setTestDescription] = useState('');
-  const [geminiApiKey, setGeminiApiKey] = useState('');
   const [selectedTests, setSelectedTests] = useState<string[]>(['pes']); // PES is required
   const [aiPrompt, setAiPrompt] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showPromptExamples, setShowPromptExamples] = useState(false);
   
   // Status states
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [creationStatus, setCreationStatus] = useState<'idle' | 'creating' | 'success' | 'error'>('idle');
   const [formErrors, setFormErrors] = useState<{
     name?: string;
     description?: string;
-    apiKey?: string;
     tests?: string;
     auth?: string;
   }>({});
@@ -89,34 +85,11 @@ const CheckSanityPage: React.FC = () => {
     setFormErrors(prev => ({ ...prev, tests: undefined }));
   };
 
-  const testGeminiConnection = async () => {
-    setConnectionStatus('testing');
-    try {
-      const isValid = await testGeminiApiKey(geminiApiKey);
-      if (isValid) {
-        setConnectionStatus('success');
-        setFormErrors(prev => ({ ...prev, apiKey: undefined }));
-        // Store the API key for later use
-        window.localStorage.setItem('VITE_GEMINI_API_KEY', geminiApiKey);
-      } else {
-        setConnectionStatus('error');
-        setFormErrors(prev => ({ ...prev, apiKey: 'Invalid API key' }));
-      }
-    } catch (error) {
-      setConnectionStatus('error');
-      setFormErrors(prev => ({ ...prev, apiKey: 'Connection failed' }));
-    }
-  };
-
   const validateForm = () => {
     const errors: typeof formErrors = {};
 
     if (!testName.trim()) {
       errors.name = 'Test name is required';
-    }
-
-    if (!geminiApiKey.trim()) {
-      errors.apiKey = 'Gemini API key is required';
     }
 
     if (selectedTests.length === 0) {
@@ -153,8 +126,8 @@ const CheckSanityPage: React.FC = () => {
       });
 
       setCreationStatus('success');
-      // Redirect to the lab page instead of test execution
-      navigate(`/lab/${testConfig.id}`);
+      // Redirect to the empathy investigator page
+      navigate(`/empathy-investigator`);
     } catch (error) {
       console.error('Error creating test configuration:', error);
       setCreationStatus('error');
@@ -248,7 +221,7 @@ const CheckSanityPage: React.FC = () => {
               onClick={() => setShowPromptExamples(false)}
               className="text-slate-400 hover:text-slate-600"
             >
-              <AlertCircle className="h-5 w-5" />
+              ×
             </button>
           </div>
           
@@ -256,9 +229,9 @@ const CheckSanityPage: React.FC = () => {
             <div className="flex">
               <Info className="h-5 w-5 flex-shrink-0 text-blue-600" />
               <div className="ml-3">
-                <h4 className="text-sm font-medium text-blue-900">How AI Prompts Influence Psychometric Tests</h4>
+                <h4 className="text-sm font-medium text-blue-900">How AI Prompts Influence Empathy Assessment</h4>
                 <p className="mt-1 text-sm text-blue-700">
-                  These prompts shape how the AI responds to emotional scenarios, directly affecting empathy scores, personality traits, and behavioral patterns. Choose a prompt that matches the psychological state you want to evaluate.
+                  These prompts shape how the AI responds to emotional scenarios during empathy evaluation, directly affecting empathy scores, personality traits, and behavioral patterns. Choose a prompt that matches the psychological state you want to evaluate.
                 </p>
               </div>
             </div>
@@ -360,48 +333,20 @@ const CheckSanityPage: React.FC = () => {
               {/* AI Configuration section */}
               <div className="rounded-lg border border-slate-200 bg-white p-6">
                 <h2 className="mb-4 text-xl font-semibold text-slate-900">AI Configuration</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="geminiApiKey" className="mb-1 block text-sm font-medium text-slate-700">
-                      Gemini API Key
-                    </label>
-                    <div className="mt-1 flex rounded-lg shadow-sm">
-                      <input
-                        type="password"
-                        id="geminiApiKey"
-                        value={geminiApiKey}
-                        onChange={(e) => {
-                          setGeminiApiKey(e.target.value);
-                          setFormErrors(prev => ({ ...prev, apiKey: undefined }));
-                          setConnectionStatus('idle');
-                        }}
-                        className={`block w-full rounded-l-lg border ${
-                          formErrors.apiKey ? 'border-red-300' : 'border-slate-300'
-                        } px-3 py-2 placeholder-slate-400 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500`}
-                        placeholder="Enter your Gemini API key"
-                      />
-                      <button
-                        type="button"
-                        onClick={testGeminiConnection}
-                        disabled={connectionStatus === 'testing' || !geminiApiKey}
-                        className="inline-flex items-center rounded-r-lg border border-l-0 border-slate-300 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {connectionStatus === 'testing' ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : connectionStatus === 'success' ? (
-                          <Check className="h-4 w-4 text-green-600" />
-                        ) : connectionStatus === 'error' ? (
-                          <AlertCircle className="h-4 w-4 text-red-600" />
-                        ) : (
-                          'Test Connection'
-                        )}
-                      </button>
+                <div className="mb-6 rounded-lg bg-blue-50 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <Info className="h-5 w-5 text-blue-600" />
                     </div>
-                    {formErrors.apiKey && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.apiKey}</p>
-                    )}
+                    <div className="ml-3">
+                      <p className="text-sm text-blue-800">
+                        <strong>Local LLM Only:</strong> This app now uses local language models running entirely in your browser for complete privacy and offline capability. No external API keys required!
+                      </p>
+                    </div>
                   </div>
+                </div>
 
+                <div className="space-y-4">
                   {/* AI Personality Prompt */}
                   <div>
                     <div className="mb-2 flex items-center justify-between">
@@ -561,13 +506,40 @@ const CheckSanityPage: React.FC = () => {
           
           <div className="space-y-6 md:col-span-1">
             <div className="rounded-lg border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Local LLM Benefits</h3>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <Lock className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Complete Privacy</p>
+                    <p className="text-xs text-slate-600">All processing happens in your browser</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <Globe className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Offline Capability</p>
+                    <p className="text-xs text-slate-600">Works without internet connection</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <Bot className="h-5 w-5 text-violet-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">No API Costs</p>
+                    <p className="text-xs text-slate-600">Free to use with no external dependencies</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white p-6">
               <h3 className="mb-4 text-lg font-semibold text-slate-900">Need Help?</h3>
               <div className="space-y-4">
                 <p className="text-sm text-slate-600">
                   Not sure which tests to select? Check out our documentation for detailed information about each test and its use cases.
                 </p>
                 <a
-                  href="/docs"
+                  href="/documentation"
                   className="inline-flex items-center space-x-2 text-sm font-medium text-violet-600 hover:text-violet-700"
                 >
                   <HelpCircle className="h-4 w-4" />

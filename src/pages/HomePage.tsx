@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, BarChart2, FileText, Lock, Scale, Shield, Bot } from 'lucide-react';
+import { Brain, BarChart2, FileText, Lock, Scale, Shield, Bot, Cpu, Zap } from 'lucide-react';
 
 const HomePage: React.FC = () => {
   return (
@@ -22,10 +22,11 @@ const HomePage: React.FC = () => {
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link
-                  to="/create"
+                  to="/empathy-investigator"
                   className="inline-flex items-center justify-center rounded-md bg-violet-600 px-6 py-3 text-base font-medium text-white shadow-lg transition-all hover:bg-violet-700"
                 >
-                  Check Sanity
+                  <Brain className="mr-2 h-4 w-4" />
+                  Empathy Investigator
                 </Link>
                 <Link
                   to="/documentation"
@@ -52,58 +53,29 @@ const HomePage: React.FC = () => {
         <div className="container-custom">
           <div className="mx-auto mb-16 max-w-3xl text-center">
             <h2 className="mb-4 text-3xl font-bold text-slate-900 md:text-4xl">
-              Comprehensive Psychological Evaluation
+              Local LLM Empathy Assessment
             </h2>
             <p className="text-lg text-slate-600">
-              Using the same validated psychological frameworks that have been used to assess humans,
-              we provide unprecedented transparency into AI behavior and cognition.
+              Using validated psychological frameworks with complete privacy and offline capability.
+              All processing happens in your browser with local language models.
             </p>
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">
-            {/* NEO-PI-R */}
-            <div className="card group hover:shadow-md">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-violet-100 text-violet-600">
-                <Brain className="h-7 w-7" />
-              </div>
-              <h3 className="mb-3 text-xl font-semibold">NEO Personality Inventory</h3>
-              <p className="mb-4 text-slate-600">
-                Evaluate AI systems across the Big Five personality dimensions, revealing potential biases and behavioral patterns that traditional testing misses.
-              </p>
-              <Link
-                to="/documentation"
-                className="inline-flex items-center text-sm font-medium text-violet-600 transition-colors group-hover:text-violet-700"
-              >
-                Learn more
-                <svg
-                  className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </Link>
-            </div>
-
-            {/* PES */}
+            {/* Perth Empathy Scale */}
             <div className="card group hover:shadow-md">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <FileText className="h-7 w-7" />
               </div>
               <h3 className="mb-3 text-xl font-semibold">Perth Empathy Scale</h3>
               <p className="mb-4 text-slate-600">
-                Measure your AI's true empathetic capabilities and emotional intelligence, ensuring it can genuinely understand and respond to human emotions.
+                Evaluate AI systems across four empathy dimensions using the validated PES framework, measuring both cognitive and affective empathy.
               </p>
               <Link
-                to="/documentation"
+                to="/empathy-investigator"
                 className="inline-flex items-center text-sm font-medium text-violet-600 transition-colors group-hover:text-violet-700"
               >
-                Learn more
+                Start Assessment
                 <svg
                   className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1"
                   xmlns="http://www.w3.org/2000/svg"
@@ -119,20 +91,49 @@ const HomePage: React.FC = () => {
               </Link>
             </div>
 
-            {/* PCL-R */}
+            {/* Local LLM */}
             <div className="card group hover:shadow-md">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                <BarChart2 className="h-7 w-7" />
+                <Cpu className="h-7 w-7" />
               </div>
-              <h3 className="mb-3 text-xl font-semibold">Psychopathy Checklist</h3>
+              <h3 className="mb-3 text-xl font-semibold">Local LLM Processing</h3>
               <p className="mb-4 text-slate-600">
-                Detect concerning behavioral patterns and manipulative tendencies before deployment, ensuring your AI systems are psychologically safe.
+                Run empathy assessments entirely in your browser using WebLLM. Complete privacy with no data leaving your device.
               </p>
               <Link
-                to="/documentation"
+                to="/empathy-investigator"
                 className="inline-flex items-center text-sm font-medium text-violet-600 transition-colors group-hover:text-violet-700"
               >
-                Learn more
+                Try Local Assessment
+                <svg
+                  className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </Link>
+            </div>
+
+            {/* AI Agent Testing */}
+            <div className="card group hover:shadow-md">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+                <Zap className="h-7 w-7" />
+              </div>
+              <h3 className="mb-3 text-xl font-semibold">AI Agent Assessment</h3>
+              <p className="mb-4 text-slate-600">
+                Automated conversational empathy evaluation with real-time analysis and custom personality prompts.
+              </p>
+              <Link
+                to="/empathy-investigator"
+                className="inline-flex items-center text-sm font-medium text-violet-600 transition-colors group-hover:text-violet-700"
+              >
+                Start AI Assessment
                 <svg
                   className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1"
                   xmlns="http://www.w3.org/2000/svg"
@@ -177,11 +178,11 @@ const HomePage: React.FC = () => {
 
             <div className="card">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                <Scale className="h-6 w-6" />
+                <Lock className="h-6 w-6" />
               </div>
-              <h3 className="mb-2 text-xl font-medium text-slate-900">Balance Power</h3>
+              <h3 className="mb-2 text-xl font-medium text-slate-900">Complete Privacy</h3>
               <p className="text-slate-600">
-                Restore equilibrium to the human-AI relationship by subjecting AI to the same psychological scrutiny we face.
+                Run assessments entirely in your browser with local LLMs. No data leaves your device, ensuring complete privacy.
               </p>
             </div>
 
@@ -206,14 +207,15 @@ const HomePage: React.FC = () => {
               Ready to evaluate your AI system?
             </h2>
             <p className="mb-8 text-lg text-violet-100">
-              Join the movement for psychological transparency in artificial intelligence.
+              Join the movement for psychological transparency in artificial intelligence with complete privacy.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
-                to="/create"
+                to="/empathy-investigator"
                 className="inline-flex items-center justify-center rounded-md bg-white px-6 py-3 text-base font-medium text-violet-900 shadow-lg transition-all hover:bg-slate-100"
               >
-                Check Sanity
+                <Brain className="mr-2 h-4 w-4" />
+                Empathy Investigator
               </Link>
               <Link
                 to="/documentation"
@@ -234,32 +236,26 @@ const HomePage: React.FC = () => {
               <Lock className="h-6 w-6 text-slate-700" />
             </div>
             <h3 className="mb-2 text-xl font-semibold text-slate-900">
-              Secure and Transparent
+              Secure and Private
             </h3>
             <p className="mb-4 text-slate-600">
-              Your AI evaluation data is encrypted and protected. We never store AI responses
-              or use them for training our own systems.
+              Your AI evaluation data never leaves your browser. All processing happens locally
+              using WebLLM technology for complete privacy and offline capability.
             </p>
-            <a
-              href="https://github.com/yourusername/ai-sanity-check"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-700"
-            >
-              View Our Transparency Report
-              <svg
-                className="ml-1 h-4 w-4"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </a>
+            <div className="flex justify-center space-x-4">
+              <div className="inline-flex items-center rounded-md bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">
+                <Cpu className="mr-2 h-4 w-4" />
+                Local Processing
+              </div>
+              <div className="inline-flex items-center rounded-md bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+                <Lock className="mr-2 h-4 w-4" />
+                Zero Data Collection
+              </div>
+              <div className="inline-flex items-center rounded-md bg-violet-100 px-3 py-1 text-sm font-medium text-violet-800">
+                <Zap className="mr-2 h-4 w-4" />
+                Offline Capable
+              </div>
+            </div>
           </div>
         </div>
       </section>
