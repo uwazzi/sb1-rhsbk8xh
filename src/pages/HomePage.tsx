@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, BarChart2, FileText, Lock, Scale, Shield, Bot, Cpu, Zap } from 'lucide-react';
+import { Brain, BarChart2, FileText, Lock, Scale, Shield, Bot, Cpu, Zap, Eye } from 'lucide-react';
 
 const HomePage: React.FC = () => {
   return (
@@ -29,10 +29,11 @@ const HomePage: React.FC = () => {
                   Empathy Investigator
                 </Link>
                 <Link
-                  to="/documentation"
+                  to="/view-tests"
                   className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/10 px-6 py-3 text-base font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20"
                 >
-                  Learn More
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Test Results
                 </Link>
               </div>
             </div>
@@ -120,20 +121,20 @@ const HomePage: React.FC = () => {
               </Link>
             </div>
 
-            {/* AI Agent Testing */}
+            {/* Public Results */}
             <div className="card group hover:shadow-md">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-violet-100 text-violet-600">
-                <Zap className="h-7 w-7" />
+                <Eye className="h-7 w-7" />
               </div>
-              <h3 className="mb-3 text-xl font-semibold">AI Agent Assessment</h3>
+              <h3 className="mb-3 text-xl font-semibold">Public Test Results</h3>
               <p className="mb-4 text-slate-600">
-                Automated conversational empathy evaluation with real-time analysis and custom personality prompts.
+                Explore community test results and empathy assessments. All results are publicly viewable for transparency and research.
               </p>
               <Link
-                to="/empathy-investigator"
+                to="/view-tests"
                 className="inline-flex items-center text-sm font-medium text-violet-600 transition-colors group-hover:text-violet-700"
               >
-                Start AI Assessment
+                View Results
                 <svg
                   className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1"
                   xmlns="http://www.w3.org/2000/svg"
@@ -215,13 +216,14 @@ const HomePage: React.FC = () => {
                 className="inline-flex items-center justify-center rounded-md bg-white px-6 py-3 text-base font-medium text-violet-900 shadow-lg transition-all hover:bg-slate-100"
               >
                 <Brain className="mr-2 h-4 w-4" />
-                Empathy Investigator
+                Start Assessment
               </Link>
               <Link
-                to="/documentation"
+                to="/view-tests"
                 className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/10 px-6 py-3 text-base font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20"
               >
-                View Documentation
+                <Eye className="mr-2 h-4 w-4" />
+                View Public Results
               </Link>
             </div>
           </div>

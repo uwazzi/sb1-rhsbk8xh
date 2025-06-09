@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Calendar, User, BarChart3, Clock, Eye, Play, Brain, FileText, Users, TrendingUp, Globe, Lock } from 'lucide-react';
+import { Search, Filter, Calendar, User, BarChart3, Clock, Eye, Play, Brain, FileText, Users, TrendingUp, Globe, Lock, Crown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { pesAgentClient } from '../lib/pesAgent';
 
@@ -42,8 +42,10 @@ const ViewTestsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'configurations' | 'pes-sessions'>('configurations');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    checkAuthStatus();
     loadAllTests();
   }, []);
 
@@ -51,21 +53,26 @@ const ViewTestsPage: React.FC = () => {
     applyFilters();
   }, [searchTerm, statusFilter, testTypeFilter, testConfigurations, pesSessions, viewMode]);
 
+  const checkAuthStatus = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session?.user);
+  };
+
   const loadAllTests = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Load test configurations (public ones)
+      // Load all test configurations (both public and private for display purposes)
+      // Note: Private tests will show as "Premium Only" for non-authenticated users
       const { data: configurations, error: configError } = await supabase
         .from('test_configurations')
         .select('*')
-        .eq('is_public', true)
         .order('created_at', { ascending: false });
 
       if (configError) throw configError;
 
-      // Load PES sessions (completed public ones)
+      // Load all PES sessions (completed ones)
       const { data: sessions, error: sessionsError } = await supabase
         .from('pes_test_sessions')
         .select(`
@@ -174,6 +181,18 @@ const ViewTestsPage: React.FC = () => {
     return 'text-red-600 bg-red-100';
   };
 
+  const canViewTest = (test: TestConfiguration) => {
+    return test.is_public || isAuthenticated;
+  };
+
+  const getPublicTestsCount = () => {
+    return testConfigurations.filter(t => t.is_public).length;
+  };
+
+  const getPrivateTestsCount = () => {
+    return testConfigurations.filter(t => !t.is_public).length;
+  };
+
   if (loading) {
     return (
       <div className="py-10">
@@ -222,10 +241,23 @@ const ViewTestsPage: React.FC = () => {
       <div className="container-custom">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">View Tests</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Public Test Results</h1>
           <p className="text-slate-600">
-            Explore publicly available psychological assessments and empathy evaluations
+            Explore psychological assessments and empathy evaluations from the community
           </p>
+          {!isAuthenticated && (
+            <div className="mt-4 rounded-lg bg-blue-50 p-4">
+              <div className="flex items-start space-x-3">
+                <Globe className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-blue-900">Public Access</h4>
+                  <p className="text-sm text-blue-700 mt-1">
+                    You're viewing publicly available test results. <Link to="/login" className="font-medium underline">Sign in</Link> to access premium features and create private tests.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Overview */}
@@ -234,8 +266,18 @@ const ViewTestsPage: React.FC = () => {
             <div className="flex items-center">
               <Globe className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-slate-600">Public Test Configs</p>
-                <p className="text-2xl font-semibold text-slate-900">{testConfigurations.length}</p>
+                <p className="text-sm font-medium text-slate-600">Public Tests</p>
+                <p className="text-2xl font-semibold text-slate-900">{getPublicTestsCount()}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="flex items-center">
+              <Crown className="h-8 w-8 text-amber-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-slate-600">Premium Tests</p>
+                <p className="text-2xl font-semibold text-slate-900">{getPrivateTestsCount()}</p>
               </div>
             </div>
           </div>
@@ -260,18 +302,6 @@ const ViewTestsPage: React.FC = () => {
                     ? (pesSessions.reduce((sum, s) => sum + (s.total_score || 0), 0) / pesSessions.length).toFixed(2)
                     : '0.00'
                   }
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <div className="flex items-center">
-              <Users className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-slate-600">Active Tests</p>
-                <p className="text-2xl font-semibold text-slate-900">
-                  {testConfigurations.filter(t => t.status === 'active').length}
                 </p>
               </div>
             </div>
@@ -366,9 +396,18 @@ const ViewTestsPage: React.FC = () => {
                         {test.status === 'draft' && <FileText className="mr-1 h-3 w-3" />}
                         {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
                       </div>
-                      <div className="flex items-center text-xs text-slate-500">
-                        <Globe className="mr-1 h-3 w-3" />
-                        Public
+                      <div className="flex items-center text-xs">
+                        {test.is_public ? (
+                          <div className="flex items-center text-green-600">
+                            <Globe className="mr-1 h-3 w-3" />
+                            Public
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-amber-600">
+                            <Crown className="mr-1 h-3 w-3" />
+                            Premium
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -387,10 +426,22 @@ const ViewTestsPage: React.FC = () => {
                       ))}
                     </div>
 
-                    {test.system_prompt && (
+                    {test.system_prompt && canViewTest(test) && (
                       <div className="mb-4 rounded-lg bg-amber-50 p-3">
                         <p className="text-xs font-medium text-amber-900 mb-1">Custom AI Prompt</p>
                         <p className="text-xs text-amber-700 line-clamp-2">{test.system_prompt}</p>
+                      </div>
+                    )}
+
+                    {!canViewTest(test) && (
+                      <div className="mb-4 rounded-lg bg-amber-50 p-3">
+                        <div className="flex items-center">
+                          <Crown className="h-4 w-4 text-amber-600 mr-2" />
+                          <p className="text-xs font-medium text-amber-900">Premium Test</p>
+                        </div>
+                        <p className="text-xs text-amber-700 mt-1">
+                          <Link to="/login" className="underline">Sign in</Link> to view full test details and results.
+                        </p>
                       </div>
                     )}
 
@@ -399,13 +450,23 @@ const ViewTestsPage: React.FC = () => {
                         <Calendar className="mr-1 inline h-3 w-3" />
                         {new Date(test.created_at).toLocaleDateString()}
                       </div>
-                      <Link
-                        to={`/test/${test.id}`}
-                        className="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-700"
-                      >
-                        <Eye className="mr-1 h-4 w-4" />
-                        View Test
-                      </Link>
+                      {canViewTest(test) ? (
+                        <Link
+                          to={`/results/${test.id}`}
+                          className="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-700"
+                        >
+                          <Eye className="mr-1 h-4 w-4" />
+                          View Results
+                        </Link>
+                      ) : (
+                        <Link
+                          to="/login"
+                          className="inline-flex items-center text-sm font-medium text-amber-600 hover:text-amber-700"
+                        >
+                          <Crown className="mr-1 h-4 w-4" />
+                          Premium Access
+                        </Link>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -417,15 +478,15 @@ const ViewTestsPage: React.FC = () => {
                 <p className="mt-2 text-slate-600">
                   {searchTerm || statusFilter !== 'all' || testTypeFilter !== 'all'
                     ? "No tests match your current filters. Try adjusting your search criteria."
-                    : "No public test configurations are available yet."}
+                    : "No test configurations are available yet."}
                 </p>
                 <div className="mt-6">
                   <Link
-                    to="/create"
+                    to="/empathy-investigator"
                     className="inline-flex items-center rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
                   >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Create Test Configuration
+                    <Brain className="mr-2 h-4 w-4" />
+                    Start Empathy Assessment
                   </Link>
                 </div>
               </div>
@@ -489,11 +550,11 @@ const ViewTestsPage: React.FC = () => {
                         {new Date(session.completed_at).toLocaleDateString()}
                       </div>
                       <Link
-                        to={`/pes-investigator`}
+                        to={`/empathy-investigator`}
                         className="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-700"
                       >
                         <Play className="mr-1 h-4 w-4" />
-                        Try PES Test
+                        Try Assessment
                       </Link>
                     </div>
                   </div>
@@ -510,7 +571,7 @@ const ViewTestsPage: React.FC = () => {
                 </p>
                 <div className="mt-6">
                   <Link
-                    to="/pes-investigator"
+                    to="/empathy-investigator"
                     className="inline-flex items-center rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
                   >
                     <Brain className="mr-2 h-4 w-4" />
@@ -530,19 +591,21 @@ const ViewTestsPage: React.FC = () => {
               Join the community of researchers and developers using validated psychological assessments for AI systems.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
+              {!isAuthenticated && (
+                <Link
+                  to="/login"
+                  className="inline-flex items-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-violet-600 hover:bg-violet-50"
+                >
+                  <Crown className="mr-2 h-4 w-4" />
+                  Get Premium Access
+                </Link>
+              )}
               <Link
-                to="/create"
-                className="inline-flex items-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-violet-600 hover:bg-violet-50"
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Create Test Configuration
-              </Link>
-              <Link
-                to="/pes-investigator"
+                to="/empathy-investigator"
                 className="inline-flex items-center rounded-lg bg-violet-500 px-6 py-3 text-sm font-medium text-white hover:bg-violet-400"
               >
                 <Brain className="mr-2 h-4 w-4" />
-                Start PES Assessment
+                Start Empathy Assessment
               </Link>
             </div>
           </div>

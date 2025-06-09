@@ -44,6 +44,7 @@ const Header: React.FC = () => {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Empathy Investigator', path: '/empathy-investigator' },
+    { name: 'View Tests', path: '/view-tests' },
     { name: 'Documentation', path: '/documentation' },
   ];
 
@@ -102,11 +103,11 @@ const Header: React.FC = () => {
             {user ? (
               <>
                 <Link 
-                  to="/view-tests" 
+                  to="/empathy-investigator" 
                   className="inline-flex items-center rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all hover:bg-violet-700 hover:shadow-xl"
                 >
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Tests
+                  <Brain className="mr-2 h-4 w-4" />
+                  Start Assessment
                 </Link>
                 <button
                   onClick={handleSignOut}
@@ -171,11 +172,11 @@ const Header: React.FC = () => {
             {user ? (
               <>
                 <Link
-                  to="/view-tests"
+                  to="/empathy-investigator"
                   className="mt-2 inline-flex items-center justify-center rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
                 >
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Tests
+                  <Brain className="mr-2 h-4 w-4" />
+                  Start Assessment
                 </Link>
                 <button
                   onClick={handleSignOut}

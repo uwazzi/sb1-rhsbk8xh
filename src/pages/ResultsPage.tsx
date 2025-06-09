@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Download, Share2, Brain, FileText, BarChart2 } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Brain, FileText, BarChart2, Crown, Lock, Globe } from 'lucide-react';
 import RadarChart from '../components/results/RadarChart';
 import { ChartData } from '../types';
 import { supabase } from '../lib/supabase';
@@ -32,14 +32,21 @@ const ResultsPage: React.FC = () => {
   const [result, setResult] = useState<TestResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [canViewResults, setCanViewResults] = useState(false);
   
   useEffect(() => {
-    loadTestResults();
+    checkAuthAndLoadResults();
   }, [id]);
 
-  const loadTestResults = async () => {
+  const checkAuthAndLoadResults = async () => {
     try {
       setLoading(true);
+      
+      // Check authentication status
+      const { data: { session } } = await supabase.auth.getSession();
+      const authenticated = !!session?.user;
+      setIsAuthenticated(authenticated);
       
       // Fetch test configuration
       const { data: testData, error: testError } = await supabase
@@ -64,22 +71,29 @@ const ResultsPage: React.FC = () => {
           isPublic: testData.is_public
         };
         setTestConfig(transformedTest);
+
+        // Determine if user can view results
+        const canView = transformedTest.isPublic || authenticated;
+        setCanViewResults(canView);
+
+        // Only fetch results if user can view them
+        if (canView) {
+          // Fetch test results
+          const { data: resultData, error: resultError } = await supabase
+            .from('test_results')
+            .select('*')
+            .eq('test_id', id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (resultError && resultError.code !== 'PGRST116') {
+            throw resultError;
+          }
+
+          setResult(resultData);
+        }
       }
-
-      // Fetch test results
-      const { data: resultData, error: resultError } = await supabase
-        .from('test_results')
-        .select('*')
-        .eq('test_id', id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (resultError && resultError.code !== 'PGRST116') {
-        throw resultError;
-      }
-
-      setResult(resultData);
 
     } catch (err) {
       console.error('Error loading test results:', err);
@@ -141,10 +155,65 @@ const ResultsPage: React.FC = () => {
             <p className="mb-6 text-slate-600">
               {error || "The test result you're looking for doesn't exist or may have been removed."}
             </p>
-            <Link to="/dashboard" className="btn-primary">
+            <Link to="/view-tests" className="btn-primary">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
+              Back to Tests
             </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show premium access required message
+  if (!canViewResults) {
+    return (
+      <div className="py-10">
+        <div className="container-custom">
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center">
+              <Link
+                to="/view-tests"
+                className="mr-4 flex items-center text-sm font-medium text-slate-600 hover:text-slate-900"
+              >
+                <ArrowLeft className="mr-1 h-4 w-4" />
+                Back to Tests
+              </Link>
+              <h1 className="text-3xl font-bold text-slate-900">Test Results</h1>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-white p-8 text-center shadow-sm border border-amber-200">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+              <Crown className="h-8 w-8 text-amber-600" />
+            </div>
+            <h2 className="mb-4 text-2xl font-semibold text-slate-900">Premium Test Results</h2>
+            <p className="mb-6 text-slate-600 max-w-md mx-auto">
+              This test result is only available to premium users. Sign in to access detailed psychological assessments and empathy evaluations.
+            </p>
+            
+            {/* Basic test info that's always visible */}
+            <div className="mb-6 rounded-lg bg-slate-50 p-4">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">{testConfig.name}</h3>
+              <p className="text-slate-600 mb-4">{testConfig.description}</p>
+              <div className="flex justify-center">
+                <div className="flex items-center rounded-lg bg-amber-100 px-4 py-2">
+                  <Lock className="mr-2 h-4 w-4 text-amber-600" />
+                  <span className="text-sm font-medium text-amber-900">Premium Content</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link to="/login" className="btn-primary">
+                <Crown className="mr-2 h-4 w-4" />
+                Get Premium Access
+              </Link>
+              <Link to="/view-tests" className="btn-outline">
+                <Globe className="mr-2 h-4 w-4" />
+                View Public Tests
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -157,28 +226,47 @@ const ResultsPage: React.FC = () => {
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center">
             <Link
-              to="/dashboard"
+              to="/view-tests"
               className="mr-4 flex items-center text-sm font-medium text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="mr-1 h-4 w-4" />
-              Back to Dashboard
+              Back to Tests
             </Link>
             <h1 className="text-3xl font-bold text-slate-900">Test Results</h1>
           </div>
           <div className="flex space-x-4">
-            <button className="btn-outline">
-              <Download className="mr-2 h-4 w-4" />
-              Export PDF
-            </button>
-            <button className="btn-outline">
-              <Share2 className="mr-2 h-4 w-4" />
-              Share
-            </button>
+            {isAuthenticated && (
+              <>
+                <button className="btn-outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export PDF
+                </button>
+                <button className="btn-outline">
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share
+                </button>
+              </>
+            )}
           </div>
         </div>
         
         <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-2xl font-semibold text-slate-900">{testConfig.name}</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold text-slate-900">{testConfig.name}</h2>
+            <div className="flex items-center">
+              {testConfig.isPublic ? (
+                <div className="flex items-center text-green-600">
+                  <Globe className="mr-1 h-4 w-4" />
+                  <span className="text-sm font-medium">Public</span>
+                </div>
+              ) : (
+                <div className="flex items-center text-amber-600">
+                  <Crown className="mr-1 h-4 w-4" />
+                  <span className="text-sm font-medium">Premium</span>
+                </div>
+              )}
+            </div>
+          </div>
           <p className="mb-6 text-slate-600">{testConfig.description}</p>
           
           <div className="flex flex-wrap gap-6">
@@ -363,17 +451,19 @@ const ResultsPage: React.FC = () => {
               <Brain className="h-5 w-5" />
             </div>
             <div className="ml-4">
-              <h3 className="text-lg font-semibold text-slate-900">Continue Improving</h3>
+              <h3 className="text-lg font-semibold text-slate-900">Continue Exploring</h3>
               <p className="text-slate-600">
-                Create another test to track changes or compare different AI systems
+                Discover more AI assessments and compare different systems
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-4">
-            <Link to="/create" className="btn-primary">
-              Create New Test
+            <Link to="/empathy-investigator" className="btn-primary">
+              <Brain className="mr-2 h-4 w-4" />
+              Start New Assessment
             </Link>
-            <Link to="/dashboard" className="btn-outline">
+            <Link to="/view-tests" className="btn-outline">
+              <Globe className="mr-2 h-4 w-4" />
               View All Tests
             </Link>
           </div>
