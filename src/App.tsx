@@ -29,6 +29,7 @@ function App() {
         <Route path="progress/:id" element={<TestProgressPage />} />
         <Route path="results/:id" element={<ResultsPage />} />
         <Route path="documentation" element={<DocumentationPage />} />
+        <Route path="empathy-investigator" element={<PESInvestigatorPage />} />
         <Route path="pes-investigator" element={<PESInvestigatorPage />} />
         <Route path="view-tests" element={<ViewTestsPage />} />
         <Route path="*" element={<NotFoundPage />} />

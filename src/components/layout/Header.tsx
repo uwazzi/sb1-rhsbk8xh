@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Brain, BarChart2, User, LogOut, ExternalLink, Search, Eye } from 'lucide-react';
+import { Menu, X, Brain, BarChart2, User, LogOut, ExternalLink, Eye } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { signOut } from '../../lib/auth';
 
@@ -43,10 +43,8 @@ const Header: React.FC = () => {
 
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: 'Dashboard', path: '/dashboard' },
     { name: 'Check Sanity', path: '/create' },
-    { name: 'PES Investigator', path: '/pes-investigator' },
-    { name: 'View Tests', path: '/view-tests' },
+    { name: 'Empathy Investigator', path: '/pes-investigator' },
     { name: 'Documentation', path: '/documentation' },
   ];
 
@@ -104,8 +102,11 @@ const Header: React.FC = () => {
           <div className="hidden items-center space-x-4 md:flex">
             {user ? (
               <>
-                <Link to="/dashboard\" className="btn-primary">
-                  <BarChart2 className="mr-2 h-4 w-4" />
+                <Link 
+                  to="/view-tests" 
+                  className="inline-flex items-center rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all hover:bg-violet-700 hover:shadow-xl"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
                   View Tests
                 </Link>
                 <button
@@ -171,10 +172,10 @@ const Header: React.FC = () => {
             {user ? (
               <>
                 <Link
-                  to="/dashboard"
+                  to="/view-tests"
                   className="mt-2 inline-flex items-center justify-center rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
                 >
-                  <BarChart2 className="mr-2 h-4 w-4" />
+                  <Eye className="mr-2 h-4 w-4" />
                   View Tests
                 </Link>
                 <button

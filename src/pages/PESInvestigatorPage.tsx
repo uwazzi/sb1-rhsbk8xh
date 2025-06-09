@@ -79,7 +79,7 @@ const PESInvestigatorPage: React.FC = () => {
         <div className="flex items-center space-x-4">
           <Brain className="h-12 w-12" />
           <div>
-            <h1 className="text-3xl font-bold">PES Investigator Agent</h1>
+            <h1 className="text-3xl font-bold">Empathy Investigator Agent</h1>
             <p className="text-violet-100 mt-2">
               Advanced empathy assessment for AI systems using the validated Perth Empathy Scale
             </p>
@@ -504,7 +504,7 @@ const PESInvestigatorPage: React.FC = () => {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <Brain className="mx-auto h-12 w-12 animate-pulse text-violet-600" />
-          <p className="mt-4 text-slate-600">Loading PES Investigator...</p>
+          <p className="mt-4 text-slate-600">Loading Empathy Investigator...</p>
         </div>
       </div>
     );
