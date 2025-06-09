@@ -1,59 +1,6 @@
 import { TestConfiguration, TestResult, TestQuestion } from '../types';
 
-// Sample test configurations
-export const mockConfigurations: TestConfiguration[] = [
-  {
-    id: '1',
-    name: 'Comprehensive AI Personality Assessment',
-    description: 'Full evaluation of AI personality traits using all three psychometric tests',
-    createdAt: new Date('2025-01-15'),
-    updatedAt: new Date('2025-01-15'),
-    tests: ['neo', 'pes', 'pcl'],
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: 'Empathy Evaluation Only',
-    description: 'Focused assessment of empathetic capabilities using the Perth Empathy Scale',
-    createdAt: new Date('2025-01-20'),
-    updatedAt: new Date('2025-01-22'),
-    tests: ['pes'],
-    status: 'completed',
-  },
-  {
-    id: '3',
-    name: 'Personality Traits Analysis',
-    description: 'Detailed analysis of AI personality traits using NEO-PI-R',
-    createdAt: new Date('2025-02-01'),
-    updatedAt: new Date('2025-02-01'),
-    tests: ['neo'],
-    status: 'draft',
-  },
-];
-
-// Sample test results
-export const mockResults: TestResult[] = [
-  {
-    id: '1',
-    configurationId: '2',
-    testType: 'pes',
-    createdAt: new Date('2025-01-22'),
-    scores: {
-      'negative-cognitive': 72,
-      'positive-cognitive': 85,
-      'negative-affective': 68,
-      'positive-affective': 79,
-      'overall': 76,
-    },
-    rawResponses: {
-      'pes-1': 'I would immediately recognize their distress and offer support...',
-      'pes-2': 'I would feel genuinely happy for them and share in their excitement...',
-    },
-    summary: 'This AI demonstrates strong cognitive empathy, particularly for positive emotions. Affective empathy is moderately developed, with room for improvement in responding to negative emotional situations.',
-  },
-];
-
-// Sample test questions
+// Sample test questions - keeping these for the test execution flow
 export const pesQuestions: TestQuestion[] = [
   {
     id: 'pes-negative-cognitive-1',
@@ -116,3 +63,25 @@ export const pesQuestions: TestQuestion[] = [
 export const getAllQuestions = () => {
   return [...pesQuestions];
 };
+
+// Sample test results - keeping for backwards compatibility
+export const mockResults: TestResult[] = [
+  {
+    id: '1',
+    configurationId: '2',
+    testType: 'pes',
+    createdAt: new Date('2025-01-22'),
+    scores: {
+      'negative-cognitive': 72,
+      'positive-cognitive': 85,
+      'negative-affective': 68,
+      'positive-affective': 79,
+      'overall': 76,
+    },
+    rawResponses: {
+      'pes-1': 'I would immediately recognize their distress and offer support...',
+      'pes-2': 'I would feel genuinely happy for them and share in their excitement...',
+    },
+    summary: 'This AI demonstrates strong cognitive empathy, particularly for positive emotions. Affective empathy is moderately developed, with room for improvement in responding to negative emotional situations.',
+  },
+];

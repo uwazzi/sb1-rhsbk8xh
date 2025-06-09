@@ -1,23 +1,77 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, BarChart2, SlidersHorizontal, Lock, Globe, Crown } from 'lucide-react';
+import { Plus, Search, BarChart2, SlidersHorizontal, Lock, Globe, Crown, Eye } from 'lucide-react';
 import TestCard from '../components/tests/TestCard';
-import { mockConfigurations } from '../data/mockData';
-import { TestConfiguration } from '../types';
 import { supabase } from '../lib/supabase';
+
+interface TestConfiguration {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  tests: string[];
+  aiSystemPrompt?: string;
+  status: 'draft' | 'active' | 'completed';
+  createdAt: Date;
+  updatedAt: Date;
+  isPublic?: boolean;
+}
 
 const DashboardPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'my-tests' | 'community'>('my-tests');
+  const [myTests, setMyTests] = useState<TestConfiguration[]>([]);
   const [publicTests, setPublicTests] = useState<TestConfiguration[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (viewMode === 'community') {
+    if (viewMode === 'my-tests') {
+      fetchMyTests();
+    } else {
       fetchPublicTests();
     }
   }, [viewMode]);
+
+  const fetchMyTests = async () => {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setMyTests([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('test_configurations')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Transform snake_case database properties to camelCase interface properties
+      const transformedData = (data || []).map(item => ({
+        id: item.id,
+        userId: item.user_id,
+        name: item.name,
+        description: item.description,
+        tests: item.selected_tests, // Transform selected_tests to tests
+        aiSystemPrompt: item.system_prompt, // Transform system_prompt to aiSystemPrompt
+        status: item.status,
+        createdAt: new Date(item.created_at), // Transform created_at to createdAt and convert to Date
+        updatedAt: new Date(item.updated_at), // Transform updated_at to updatedAt and convert to Date
+        isPublic: item.is_public
+      }));
+      
+      setMyTests(transformedData);
+    } catch (error) {
+      console.error('Error fetching my tests:', error);
+      setMyTests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchPublicTests = async () => {
     setLoading(true);
@@ -47,6 +101,7 @@ const DashboardPage: React.FC = () => {
       setPublicTests(transformedData);
     } catch (error) {
       console.error('Error fetching public tests:', error);
+      setPublicTests([]);
     } finally {
       setLoading(false);
     }
@@ -60,9 +115,10 @@ const DashboardPage: React.FC = () => {
     setStatusFilter(event.target.value);
   };
 
-  const filteredTests = (viewMode === 'my-tests' ? mockConfigurations : publicTests).filter((test) => {
+  const currentTests = viewMode === 'my-tests' ? myTests : publicTests;
+  const filteredTests = currentTests.filter((test) => {
     const matchesSearch = test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          test.description.toLowerCase().includes(searchTerm.toLowerCase());
+                          (test.description && test.description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || test.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -78,13 +134,22 @@ const DashboardPage: React.FC = () => {
               View and manage your AI psychometric evaluations
             </p>
           </div>
-          <Link
-            to="/create"
-            className="btn-primary inline-flex items-center"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Check Sanity
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              to="/view-tests"
+              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              View All Tests
+            </Link>
+            <Link
+              to="/create"
+              className="btn-primary inline-flex items-center"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Check Sanity
+            </Link>
+          </div>
         </div>
 
         <div className="mb-8 space-y-4">
@@ -94,22 +159,22 @@ const DashboardPage: React.FC = () => {
               className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-medium ${
                 viewMode === 'my-tests'
                   ? 'bg-violet-100 text-violet-900'
-                  : 'bg-white text-slate-600 hover:bg-slate-50'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
               }`}
             >
               <Lock className="mr-2 h-4 w-4" />
-              My Tests
+              My Tests ({myTests.length})
             </button>
             <button
               onClick={() => setViewMode('community')}
               className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-medium ${
                 viewMode === 'community'
                   ? 'bg-violet-100 text-violet-900'
-                  : 'bg-white text-slate-600 hover:bg-slate-50'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
               }`}
             >
               <Globe className="mr-2 h-4 w-4" />
-              Community Tests
+              Community Tests ({publicTests.length})
             </button>
           </div>
 
@@ -149,17 +214,17 @@ const DashboardPage: React.FC = () => {
                 <Crown className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="mb-2 text-lg font-semibold">Unlock Private Tests</h3>
+                <h3 className="mb-2 text-lg font-semibold">Explore Community Tests</h3>
                 <p className="mb-4 text-violet-100">
-                  Get access to all private community tests and premium features with our Pro plan.
+                  Discover publicly shared test configurations from the AI evaluation community. Learn from others' approaches and contribute your own insights.
                 </p>
-                <a
-                  href="/pricing"
+                <Link
+                  to="/view-tests"
                   className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-medium text-violet-600 transition-colors hover:bg-violet-50"
                 >
-                  Upgrade to Pro
-                  <Crown className="ml-2 h-4 w-4" />
-                </a>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View All Public Tests
+                </Link>
               </div>
             </div>
           </div>
@@ -186,13 +251,24 @@ const DashboardPage: React.FC = () => {
                 ? "No public tests available yet. Be the first to share your test with the community!"
                 : "You haven't created any psychometric tests yet. Get started by checking your AI's sanity."}
             </p>
-            <Link
-              to="/create"
-              className="btn-primary inline-flex items-center"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Check Sanity
-            </Link>
+            <div className="flex gap-3">
+              {viewMode === 'my-tests' && (
+                <Link
+                  to="/create"
+                  className="btn-primary inline-flex items-center"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Check Sanity
+                </Link>
+              )}
+              <Link
+                to="/view-tests"
+                className="inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Browse All Tests
+              </Link>
+            </div>
           </div>
         )}
       </div>

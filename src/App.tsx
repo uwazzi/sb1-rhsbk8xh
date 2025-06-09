@@ -13,6 +13,7 @@ import AuthPage from './pages/AuthPage';
 import LabPage from './pages/LabPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import PESInvestigatorPage from './pages/PESInvestigatorPage';
+import ViewTestsPage from './pages/ViewTestsPage';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
         <Route path="results/:id" element={<ResultsPage />} />
         <Route path="documentation" element={<DocumentationPage />} />
         <Route path="pes-investigator" element={<PESInvestigatorPage />} />
+        <Route path="view-tests" element={<ViewTestsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
