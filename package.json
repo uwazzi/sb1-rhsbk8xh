@@ -18,7 +18,8 @@
     "@supabase/supabase-js": "^2.39.3",
     "fastmcp": "^2.2.2",
     "llamaindex": "^0.3.15",
-    "openai": "^4.28.0"
+    "openai": "^4.28.0",
+    "@mlc-ai/web-llm": "^0.2.46"
   },
   "devDependencies": {
     "@types/react": "^18.2.56",
