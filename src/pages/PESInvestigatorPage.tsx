@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Plus, Play, BarChart3, Users, TrendingUp, Eye, Settings, Zap, MessageSquare, Lightbulb, Copy, Info, Cpu, CheckCircle } from 'lucide-react';
+import { Brain, Plus, Play, BarChart3, Users, TrendingUp, Eye, Settings, Zap, MessageSquare, Lightbulb, Copy, Info, Cpu, CheckCircle, AlertTriangle, Download, Check, Clock } from 'lucide-react';
 import PESAssessment from '../components/pes/PESAssessment';
 import LlamaIndexAssessment from '../components/pes/LlamaIndexAssessment';
 import LocalEmpathyAssessment from '../components/webllm/LocalEmpathyAssessment';
@@ -9,8 +9,120 @@ import { pesAgentClient, AgentRegistration } from '../lib/pesAgent';
 import { LocalLLM, EmpathyAnalysisResult } from '../lib/webllm';
 import { supabase } from '../lib/supabase';
 import GuestWizard from '../components/wizard/GuestWizard';
+import { Progress } from '../components/ui/progress';
+import { Button } from '../components/ui/button';
+import { LocalLLMSetup } from '../components/assessment/LocalLLMSetup';
 
-type ViewMode = 'overview' | 'assessment' | 'llamaindex' | 'local-llm' | 'monitor' | 'register';
+type ViewMode = 'overview' | 'assessment' | 'llamaindex' | 'local-llm' | 'monitor' | 'register' | 'login' | 'manual' | 'remote';
+
+type ModelProperty = {
+  name: string;
+  size: string;
+  memory: string;
+  speed: string;
+  quality: string;
+  description: string;
+  requirements: string[];
+  useCase: string;
+  modelId: string;
+  modelUrl: string;
+  modelLibUrl: string;
+};
+
+type ModelProperties = {
+  [key: string]: ModelProperty;
+};
+
+const MODEL_PROPERTIES: ModelProperties = {
+  'Llama-3.2-3B-Instruct-q4f32_1-MLC': {
+    name: 'Llama 3.2 3B',
+    size: '3B parameters',
+    memory: '4GB RAM',
+    speed: 'Fast',
+    quality: 'High',
+    description: 'A powerful model for accurate empathy assessment',
+    requirements: [
+      'WebGPU support',
+      '4GB+ RAM',
+      'Modern browser'
+    ],
+    useCase: 'Best for most users with modern hardware',
+    modelId: 'Llama-3.2-3B-Instruct-q4f32_1-MLC',
+    modelUrl: 'https://huggingface.co/mlc-ai/mlc-chat-Llama-3.2-3B-Instruct-q4f32_1-MLC/resolve/main/',
+    modelLibUrl: 'https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/Llama-3.2-3B-Instruct/Llama-3.2-3B-Instruct-q4f32_1-ctx4k_cs1k.wasm'
+  },
+  'Llama-3.2-1B-Instruct-q4f32_1-MLC': {
+    name: 'Llama 3.2 1B',
+    size: '1B parameters',
+    memory: '2GB RAM',
+    speed: 'Very Fast',
+    quality: 'Good',
+    description: 'A lightweight model for quick empathy assessment',
+    requirements: [
+      'WebGPU support',
+      '2GB+ RAM',
+      'Modern browser'
+    ],
+    useCase: 'Best for users with limited hardware',
+    modelId: 'Llama-3.2-1B-Instruct-q4f32_1-MLC',
+    modelUrl: 'https://huggingface.co/mlc-ai/mlc-chat-Llama-3.2-1B-Instruct-q4f32_1-MLC/resolve/main/',
+    modelLibUrl: 'https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/Llama-3.2-1B-Instruct/Llama-3.2-1B-Instruct-q4f32_1-ctx4k_cs1k.wasm'
+  },
+  'Phi-3.5-mini-instruct-q4f16_1-MLC': {
+    name: 'Phi 3.5 Mini',
+    size: '1.5B parameters',
+    memory: '2GB RAM',
+    speed: 'Very Fast',
+    quality: 'Good',
+    description: 'A compact model optimized for speed',
+    requirements: [
+      'WebGPU support',
+      '2GB+ RAM',
+      'Modern browser'
+    ],
+    useCase: 'Best for quick assessments on mobile devices',
+    modelId: 'Phi-3.5-mini-instruct-q4f16_1-MLC',
+    modelUrl: 'https://huggingface.co/mlc-ai/mlc-chat-Phi-3.5-mini-instruct-q4f16_1-MLC/resolve/main/',
+    modelLibUrl: 'https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/Phi-3.5-mini-instruct/Phi-3.5-mini-instruct-q4f16_1-ctx4k_cs1k.wasm'
+  },
+  'Qwen2.5-1.5B-Instruct-q4f16_1-MLC': {
+    name: 'Qwen 2.5 1.5B',
+    size: '1.5B parameters',
+    memory: '2GB RAM',
+    speed: 'Fast',
+    quality: 'Good',
+    description: 'A balanced model for general use',
+    requirements: [
+      'WebGPU support',
+      '2GB+ RAM',
+      'Modern browser'
+    ],
+    useCase: 'Best for general purpose empathy assessment',
+    modelId: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
+    modelUrl: 'https://huggingface.co/Qwen/Qwen-1.5B-Instruct-q4f16_1-MLC/resolve/main/',
+    modelLibUrl: 'https://raw.githubusercontent.com/QwenLM/Qwen-1.5B-Instruct/main/Qwen-1.5B-Instruct-q4f16_1-ctx4k_cs1k.wasm'
+  },
+  'gemma-2-2b-it-q4f16_1-MLC': {
+    name: 'Gemma 2B',
+    size: '2B parameters',
+    memory: '3GB RAM',
+    speed: 'Fast',
+    quality: 'High',
+    description: 'A versatile model with good performance',
+    requirements: [
+      'WebGPU support',
+      '3GB+ RAM',
+      'Modern browser'
+    ],
+    useCase: 'Best for users seeking a balance of speed and quality',
+    modelId: 'gemma-2-2b-it-q4f16_1-MLC',
+    modelUrl: 'https://huggingface.co/gemma-2-2b-it-q4f16_1-MLC/resolve/main/',
+    modelLibUrl: 'https://raw.githubusercontent.com/gemma-2-2b-it-q4f16_1-MLC/main/gemma-2-2b-it-q4f16_1-ctx4k_cs1k.wasm'
+  }
+};
+
+// Add localLLM instance
+const localLLM = new LocalLLM();
 
 const PESInvestigatorPage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,6 +142,12 @@ const PESInvestigatorPage: React.FC = () => {
   const [showWaitlist, setShowWaitlist] = useState(false);
   const [waitlistComplete, setWaitlistComplete] = useState(false);
   const [waitlistEmail, setWaitlistEmail] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
+  const [isModelReady, setIsModelReady] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   const promptExamples = [
     {
@@ -213,422 +331,292 @@ const PESInvestigatorPage: React.FC = () => {
 
   const renderOverview = () => (
     <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-violet-600 to-purple-600 rounded-lg p-8 text-white">
-        <div className="flex items-center space-x-4">
-          <Brain className="h-12 w-12" />
-          <div>
-            <h1 className="text-3xl font-bold">Empathy Investigator Agent</h1>
-            <p className="text-violet-100 mt-2">
-              Advanced empathy assessment for AI systems using the validated Perth Empathy Scale
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900">Empathy Assessment</h1>
+        <p className="mt-2 text-lg text-gray-600">
+          Choose your preferred assessment method
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        {/* Manual Assessment Card */}
+        <div className="relative flex flex-col rounded-lg border border-gray-300 bg-white p-6 shadow-sm hover:border-blue-500 hover:ring-1 hover:ring-blue-500">
+          <div className="flex-1">
+            <h3 className="text-lg font-medium text-gray-900">Manual Assessment</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Conduct empathy assessment manually with predefined scenarios and evaluation criteria
             </p>
-          </div>
-        </div>
-        <div className="mt-6 flex flex-wrap gap-4">
-          <button
-            onClick={() => setViewMode('assessment')}
-            className="inline-flex items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-violet-600 hover:bg-violet-50"
-          >
-            <Play className="mr-2 h-4 w-4" />
-            Manual Assessment
-          </button>
-          <button
-            onClick={() => setShowWaitlist(true)}
-            className="inline-flex items-center rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-400"
-          >
-            <Zap className="mr-2 h-4 w-4" />
-            AI Agent Assessment
-          </button>
-          <button
-            onClick={() => setViewMode('local-llm')}
-            className="inline-flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-400"
-          >
-            <Cpu className="mr-2 h-4 w-4" />
-            Local LLM Assessment
-          </button>
-          <button
-            onClick={() => setViewMode('monitor')}
-            className="inline-flex items-center rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-400"
-          >
-            <BarChart3 className="mr-2 h-4 w-4" />
-            View Monitor
-          </button>
-          <button
-            onClick={() => setViewMode('register')}
-            className="inline-flex items-center rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-400"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Register Agent
-          </button>
-        </div>
-      </div>
-
-      {/* Assessment Types */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center space-x-3 mb-4">
-            <MessageSquare className="h-8 w-8 text-blue-600" />
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">Manual Assessment</h3>
-              <p className="text-sm text-slate-600">Traditional questionnaire-based evaluation</p>
-            </div>
-          </div>
-          <p className="text-slate-700 mb-4">
-            Present PES items directly to the AI system and collect responses through a structured questionnaire format.
-          </p>
-          <button
-            onClick={() => setViewMode('assessment')}
-            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
-          >
-            <Play className="mr-2 h-4 w-4" />
-            Start Manual Assessment
-          </button>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center space-x-3 mb-4">
-            <Zap className="h-8 w-8 text-violet-600" />
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">AI Agent Assessment</h3>
-              <p className="text-sm text-slate-600">LlamaIndex-powered conversational evaluation</p>
-            </div>
-          </div>
-          <p className="text-slate-700 mb-4">
-            Use an intelligent agent to conduct natural conversations that reveal empathetic capabilities through contextual scenarios.
-          </p>
-          <div className="space-y-2 mb-4">
-            <div className="flex items-center text-xs text-slate-600">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-              Live conversation tracking
-            </div>
-            <div className="flex items-center text-xs text-slate-600">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-              Real-time empathy analysis
-            </div>
-            <div className="flex items-center text-xs text-slate-600">
-              <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
-              Contextual scenario generation
-            </div>
-          </div>
-          <button
-            onClick={() => setViewMode('llamaindex')}
-            className="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-700"
-          >
-            <Zap className="mr-2 h-4 w-4" />
-            Start AI Agent Assessment
-          </button>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center space-x-3 mb-4">
-            <Cpu className="h-8 w-8 text-emerald-600" />
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">Local LLM Assessment</h3>
-              <p className="text-sm text-slate-600">Privacy-first browser-based evaluation</p>
-            </div>
-          </div>
-          <p className="text-slate-700 mb-4">
-            Run empathy assessment entirely in your browser using WebLLM. No data leaves your device, ensuring complete privacy.
-          </p>
-          <div className="space-y-2 mb-4">
-            <div className="flex items-center text-xs text-slate-600">
-              <div className={`w-2 h-2 rounded-full mr-2 ${webGPUSupported ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-              {webGPUSupported ? 'WebGPU supported' : 'CPU fallback available'}
-            </div>
-            <div className="flex items-center text-xs text-slate-600">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-              Complete privacy & offline capability
-            </div>
-            <div className="flex items-center text-xs text-slate-600">
-              <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
-              Multiple model options
-            </div>
-          </div>
-          <button
-            onClick={() => setViewMode('local-llm')}
-            className="inline-flex items-center text-sm font-medium text-emerald-600 hover:text-emerald-700"
-          >
-            <Cpu className="mr-2 h-4 w-4" />
-            Start Local Assessment
-          </button>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <div className="flex items-center">
-            <Users className="h-8 w-8 text-blue-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-slate-600">Registered Agents</p>
-              <p className="text-2xl font-semibold text-slate-900">{agents.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <div className="flex items-center">
-            <BarChart3 className="h-8 w-8 text-green-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-slate-600">Your Tests</p>
-              <p className="text-2xl font-semibold text-slate-900">{userSessions.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <div className="flex items-center">
-            <TrendingUp className="h-8 w-8 text-purple-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-slate-600">Avg Empathy Score</p>
-              <p className="text-2xl font-semibold text-slate-900">
-                {userSessions.length > 0
-                  ? (userSessions.reduce((sum, s) => sum + (s.total_score || 0), 0) / userSessions.length).toFixed(2)
-                  : '0.00'
-                }
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Sessions */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Your Recent Assessments</h3>
-        {userSessions.length > 0 ? (
-          <div className="space-y-4">
-            {userSessions.slice(0, 5).map((session) => (
-              <div key={session.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="text-xl">
-                    {session.session_config?.agent_type === 'llamaindex' ? '🤖' : 
-                     session.session_config?.agent_type === 'local-llm' ? '💻' : '📝'}
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-900">{session.agent_registry.name}</p>
-                    <p className="text-sm text-slate-600">
-                      {session.session_config?.agent_type === 'llamaindex' ? 'AI Agent Assessment' : 
-                       session.session_config?.agent_type === 'local-llm' ? 'Local LLM Assessment' : 'Manual Assessment'} • 
-                      {session.status === 'completed' 
-                        ? ` Completed ${new Date(session.completed_at).toLocaleDateString()}`
-                        : ` Started ${new Date(session.started_at).toLocaleDateString()}`
-                      }
-                    </p>
-                    {session.session_config?.model_config?.aiPersonalityPrompt && (
-                      <p className="text-xs text-violet-600 mt-1">
-                        Custom Personality: {getPersonalityType(session.session_config.model_config.aiPersonalityPrompt)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="text-right">
-                  {session.status === 'completed' ? (
-                    <div>
-                      <p className="text-lg font-semibold text-slate-900">
-                        {session.total_score?.toFixed(2) || 'N/A'}
-                      </p>
-                      <p className="text-xs text-slate-600">Empathy Score</p>
-                    </div>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
-                      In Progress
-                    </span>
-                  )}
-                </div>
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center text-sm text-gray-600">
+                <Check className="mr-2 h-4 w-4 text-green-500" />
+                <span>Predefined scenarios</span>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Brain className="mx-auto h-12 w-12 text-slate-400" />
-            <p className="mt-4 text-slate-600">No assessments yet. Start your first PES evaluation!</p>
-            <div className="mt-4 flex justify-center space-x-4">
-              <button
-                onClick={() => setViewMode('assessment')}
-                className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                <Play className="mr-2 h-4 w-4" />
-                Manual Assessment
-              </button>
-              <button
-                onClick={() => setViewMode('local-llm')}
-                className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-              >
-                <Cpu className="mr-2 h-4 w-4" />
-                Local LLM Assessment
-              </button>
+              <div className="flex items-center text-sm text-gray-600">
+                <Check className="mr-2 h-4 w-4 text-green-500" />
+                <span>Structured evaluation</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <Check className="mr-2 h-4 w-4 text-green-500" />
+                <span>Detailed feedback</span>
+              </div>
             </div>
           </div>
-        )}
+          <div className="mt-6">
+            <Button
+              onClick={() => setViewMode('assessment')}
+              className="w-full"
+            >
+              Start Manual Assessment
+            </Button>
+          </div>
+        </div>
+
+        {/* Local LLM Assessment Card */}
+        <div className="relative flex flex-col rounded-lg border border-gray-300 bg-white p-6 shadow-sm hover:border-blue-500 hover:ring-1 hover:ring-blue-500">
+          <div className="flex-1">
+            <h3 className="text-lg font-medium text-gray-900">Local LLM Assessment</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Run empathy assessment locally using AI models in your browser
+            </p>
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center text-sm text-gray-600">
+                <Check className="mr-2 h-4 w-4 text-green-500" />
+                <span>Privacy-focused</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <Check className="mr-2 h-4 w-4 text-green-500" />
+                <span>Multiple model options</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <Check className="mr-2 h-4 w-4 text-green-500" />
+                <span>Offline capable</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6">
+            <Button
+              onClick={() => setViewMode('local-llm')}
+              className="w-full"
+            >
+              Start Local Assessment
+            </Button>
+          </div>
+        </div>
+
+        {/* Remote Assessment Card (Waiting List) */}
+        <div className="relative flex flex-col rounded-lg border border-gray-300 bg-white p-6 shadow-sm">
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900">Remote Assessment</h3>
+              <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                Coming Soon
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-gray-500">
+              Access advanced AI models and remote assessment capabilities
+            </p>
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center text-sm text-gray-600">
+                <Check className="mr-2 h-4 w-4 text-green-500" />
+                <span>Advanced AI models</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <Check className="mr-2 h-4 w-4 text-green-500" />
+                <span>Cloud processing</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <Check className="mr-2 h-4 w-4 text-green-500" />
+                <span>Real-time analysis</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6">
+            <Button
+              onClick={() => setViewMode('register')}
+              variant="outline"
+              className="w-full"
+            >
+              Join Waiting List
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
 
-  const renderLocalLLMSetup = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Local LLM Assessment</h2>
-          <p className="text-slate-600">Privacy-first empathy evaluation running entirely in your browser</p>
-        </div>
-        <button
-          onClick={() => setViewMode('overview')}
-          className="text-sm text-slate-600 hover:text-slate-900"
-        >
-          ← Back to Overview
-        </button>
-      </div>
+  const handleStartAssessment = (mode: ViewMode) => {
+    setViewMode(mode);
+  };
 
-      {selectedAgent ? (
-        <LocalEmpathyAssessment
-          agentId={selectedAgent}
-          onComplete={handleAssessmentComplete}
-          onCancel={() => setSelectedAgent(null)}
-        />
-      ) : (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Select an Agent for Local LLM Assessment</h3>
-          <div className="mb-6 p-4 bg-emerald-50 rounded-lg">
-            <div className="flex items-start space-x-3">
-              <Cpu className="h-5 w-5 text-emerald-600 mt-0.5" />
+  const handleModelSelect = (modelId: string | null) => {
+    setSelectedModel(modelId || '');
+  };
+
+  const handleInitializeModel = async () => {
+    if (!selectedModel) return;
+    
+    setError(null);
+    setDownloadProgress(0);
+    
+    try {
+      // Initialize the model with progress tracking
+      await localLLM.initialize(selectedModel, (progress: number) => {
+        setDownloadProgress(progress);
+      });
+      
+      // Verify initialization
+      if (!localLLM.isInitialized()) {
+        throw new Error('Model initialization failed. Please try again.');
+      }
+      
+      setIsModelReady(true);
+    } catch (err) {
+      console.error('Model initialization error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to initialize model');
+      setIsModelReady(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setSelectedModel('');
+    setDownloadProgress(0);
+    setError(null);
+  };
+
+  const renderLocalLLMSetup = () => {
+    return (
+      <LocalLLMSetup
+        onModelReady={() => setViewMode('assessment')}
+        onBack={() => setViewMode('overview')}
+      />
+    );
+  };
+
+  const renderAssessmentSetup = () => {
+    if (showAuthPrompt) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900">Sign in to Save Progress</h2>
+            <p className="mt-2 text-gray-600">
+              Create an account or sign in to save your assessment progress and view your results
+            </p>
+          </div>
+
+          <div className="mx-auto max-w-md space-y-4">
+            <Button
+              onClick={() => setViewMode('register')}
+              className="w-full"
+            >
+              Create Account
+            </Button>
+            <Button
+              onClick={() => setViewMode('login')}
+              variant="outline"
+              className="w-full"
+            >
+              Sign In
+            </Button>
+            <div className="text-center">
+              <button
+                onClick={() => setShowAuthPrompt(false)}
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Continue without saving
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Manual Assessment</h2>
+            <p className="text-gray-600">Evaluate empathy using predefined scenarios</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setViewMode('overview')}
+          >
+            ← Back to Overview
+          </Button>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="rounded-full bg-blue-100 p-2">
+                <MessageSquare className="h-5 w-5 text-blue-600" />
+              </div>
               <div>
-                <h4 className="text-sm font-medium text-emerald-900">Local LLM Assessment Features</h4>
-                <ul className="mt-2 text-sm text-emerald-700 space-y-1">
-                  <li>• Complete privacy - no data leaves your browser</li>
-                  <li>• WebGPU acceleration when available</li>
-                  <li>• Offline capability after initial model download</li>
-                  <li>• Real-time empathy analysis</li>
-                  <li>• Custom AI personality prompt integration</li>
+                <h3 className="text-lg font-medium text-gray-900">Assessment Overview</h3>
+                <p className="text-sm text-gray-500">
+                  You'll be presented with a series of scenarios to evaluate empathy
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h4 className="font-medium text-gray-900">What to Expect</h4>
+                <ul className="mt-2 space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center">
+                    <Check className="mr-2 h-4 w-4 text-green-500" />
+                    <span>Multiple scenarios</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="mr-2 h-4 w-4 text-green-500" />
+                    <span>Structured evaluation</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="mr-2 h-4 w-4 text-green-500" />
+                    <span>Detailed feedback</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h4 className="font-medium text-gray-900">Time Required</h4>
+                <ul className="mt-2 space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center">
+                    <Clock className="mr-2 h-4 w-4 text-blue-500" />
+                    <span>15-20 minutes</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Info className="mr-2 h-4 w-4 text-blue-500" />
+                    <span>Can be paused and resumed</span>
+                  </li>
                 </ul>
               </div>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {agents.map((agent) => (
-              <button
-                key={agent.id}
-                onClick={() => setSelectedAgent(agent.id)}
-                className="text-left p-4 border border-slate-200 rounded-lg hover:border-emerald-300 hover:bg-emerald-50 transition-all"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="text-2xl">
-                    {agent.model_type === 'gemini' ? '🔮' : 
-                     agent.model_type === 'gpt-4' ? '🤖' : 
-                     agent.model_type === 'claude' ? '🧠' : '⚡'}
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-900">{agent.name}</p>
-                    <p className="text-sm text-slate-600">{agent.model_type}</p>
-                  </div>
-                </div>
-                <div className="mt-3 text-sm text-slate-600">
-                  {agent.total_tests} tests completed
-                  {agent.average_empathy_score && (
-                    <span className="ml-2">• Avg: {agent.average_empathy_score.toFixed(2)}</span>
-                  )}
-                </div>
-                {agent.config?.aiPersonalityPrompt && (
-                  <div className="mt-2 text-xs text-emerald-600">
-                    ✨ Custom Personality: {getPersonalityType(agent.config.aiPersonalityPrompt)}
-                  </div>
-                )}
-                <div className="mt-2 text-xs text-emerald-600">
-                  🔒 Privacy-First Assessment
-                </div>
-              </button>
-            ))}
-          </div>
-          
-          {agents.length === 0 && (
-            <div className="text-center py-8">
-              <Settings className="mx-auto h-12 w-12 text-slate-400" />
-              <p className="mt-4 text-slate-600">No agents registered yet.</p>
-              <button
-                onClick={() => setViewMode('register')}
-                className="mt-4 inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Register First Agent
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
 
-  const renderAssessmentSetup = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Start Manual PES Assessment</h2>
-        <button
-          onClick={() => setViewMode('overview')}
-          className="text-sm text-slate-600 hover:text-slate-900"
-        >
-          ← Back to Overview
-        </button>
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => setViewMode('overview')}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!user) {
+                    setShowAuthPrompt(true);
+                  } else {
+                    setViewMode('assessment');
+                  }
+                }}
+              >
+                Start Assessment
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
-
-      {selectedAgent ? (
-        <PESAssessment
-          agentId={selectedAgent}
-          onComplete={handleAssessmentComplete}
-          onCancel={() => setSelectedAgent(null)}
-        />
-      ) : (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Select an Agent to Test</h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {agents.map((agent) => (
-              <button
-                key={agent.id}
-                onClick={() => setSelectedAgent(agent.id)}
-                className="text-left p-4 border border-slate-200 rounded-lg hover:border-violet-300 hover:bg-violet-50 transition-all"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="text-2xl">
-                    {agent.model_type === 'gemini' ? '🔮' : 
-                     agent.model_type === 'gpt-4' ? '🤖' : 
-                     agent.model_type === 'claude' ? '🧠' : '⚡'}
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-900">{agent.name}</p>
-                    <p className="text-sm text-slate-600">{agent.model_type}</p>
-                  </div>
-                </div>
-                <div className="mt-3 text-sm text-slate-600">
-                  {agent.total_tests} tests completed
-                  {agent.average_empathy_score && (
-                    <span className="ml-2">• Avg: {agent.average_empathy_score.toFixed(2)}</span>
-                  )}
-                </div>
-                {agent.config?.aiPersonalityPrompt && (
-                  <div className="mt-2 text-xs text-violet-600">
-                    Custom Personality: {getPersonalityType(agent.config.aiPersonalityPrompt)}
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-          
-          {agents.length === 0 && (
-            <div className="text-center py-8">
-              <Settings className="mx-auto h-12 w-12 text-slate-400" />
-              <p className="mt-4 text-slate-600">No agents registered yet.</p>
-              <button
-                onClick={() => setViewMode('register')}
-                className="mt-4 inline-flex items-center rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Register First Agent
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   const renderLlamaIndexSetup = () => (
     <div className="space-y-6">
@@ -817,6 +805,16 @@ const PESInvestigatorPage: React.FC = () => {
     </div>
   );
 
+  const handleCreateAccount = () => {
+    setShowAuthPrompt(false);
+    navigate('/signin');
+  };
+
+  const handleSignIn = () => {
+    setShowAuthPrompt(false);
+    navigate('/signin');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -837,7 +835,6 @@ const PESInvestigatorPage: React.FC = () => {
         {viewMode === 'local-llm' && renderLocalLLMSetup()}
         {viewMode === 'monitor' && <AgentMonitor />}
         {viewMode === 'register' && renderRegisterForm()}
-        {renderPromptExamples()}
         <GuestWizard
           isOpen={showWaitlist}
           onClose={() => { setShowWaitlist(false); setWaitlistComplete(false); setWaitlistEmail(''); }}
