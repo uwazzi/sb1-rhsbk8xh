@@ -657,6 +657,99 @@ const PESInvestigatorPage: React.FC = () => {
     </div>
   );
 
+  const renderRegisterForm = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">Register New Agent</h2>
+        <button
+          onClick={() => setViewMode('overview')}
+          className="text-sm text-slate-600 hover:text-slate-900"
+        >
+          ← Back to Overview
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <form onSubmit={handleRegisterAgent} className="space-y-6">
+          <div>
+            <label htmlFor="agentName" className="block text-sm font-medium text-slate-700 mb-2">
+              Agent Name
+            </label>
+            <input
+              type="text"
+              id="agentName"
+              value={registerForm.name}
+              onChange={(e) => setRegisterForm(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-violet-500 focus:ring-violet-500"
+              placeholder="Enter agent name"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="modelType" className="block text-sm font-medium text-slate-700 mb-2">
+              Model Type
+            </label>
+            <select
+              id="modelType"
+              value={registerForm.modelType}
+              onChange={(e) => setRegisterForm(prev => ({ ...prev, modelType: e.target.value }))}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-violet-500 focus:ring-violet-500"
+            >
+              <option value="gemini">Gemini</option>
+              <option value="gpt-4">GPT-4</option>
+              <option value="claude">Claude</option>
+              <option value="local-llm">Local LLM</option>
+            </select>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="aiPersonalityPrompt" className="block text-sm font-medium text-slate-700">
+                AI Personality Prompt (Optional)
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowPromptExamples(true)}
+                className="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-700"
+              >
+                <Lightbulb className="mr-1 h-4 w-4" />
+                View Examples
+              </button>
+            </div>
+            <textarea
+              id="aiPersonalityPrompt"
+              value={registerForm.aiPersonalityPrompt}
+              onChange={(e) => setRegisterForm(prev => ({ ...prev, aiPersonalityPrompt: e.target.value }))}
+              rows={4}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-violet-500 focus:ring-violet-500"
+              placeholder="Define the AI's personality, emotional state, or behavioral patterns for testing..."
+            />
+            <p className="mt-2 text-sm text-slate-600">
+              This prompt will shape how the AI responds to empathy scenarios during assessment.
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => setViewMode('overview')}
+              className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700"
+            >
+              Register Agent
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
