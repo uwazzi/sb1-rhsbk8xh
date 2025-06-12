@@ -14,6 +14,7 @@ import LabPage from './pages/LabPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import PESInvestigatorPage from './pages/PESInvestigatorPage';
 import ViewTestsPage from './pages/ViewTestsPage';
+import LiveAssessmentPage from './pages/LiveAssessmentPage';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route path="empathy-investigator" element={<PESInvestigatorPage />} />
         <Route path="pes-investigator" element={<PESInvestigatorPage />} />
         <Route path="view-tests" element={<ViewTestsPage />} />
+        <Route path="remote-agent-testing" element={<LiveAssessmentPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

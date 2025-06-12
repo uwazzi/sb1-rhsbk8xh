@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, BarChart2, FileText, Lock, Scale, Shield, Bot, Cpu, Zap, Eye, AlertTriangle } from 'lucide-react';
+import { Brain, FileText, Lock, Scale, Shield, Bot, Cpu, Zap, Eye, AlertTriangle } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 const HomePage: React.FC = () => {
@@ -109,20 +109,20 @@ const HomePage: React.FC = () => {
               </Link>
             </div>
 
-            {/* Local LLM */}
+            {/* Remote Agent Testing */}
             <div className="card group hover:shadow-md">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                 <Cpu className="h-7 w-7" />
               </div>
-              <h3 className="mb-3 text-xl font-semibold">Local LLM Processing</h3>
+              <h3 className="mb-3 text-xl font-semibold">Remote Agent Testing</h3>
               <p className="mb-4 text-slate-600">
-                Run empathy assessments entirely in your browser using WebLLM. No data leaves your device, ensuring complete privacy.
+                Advanced AI agent testing with comprehensive psychological assessment and real-time analysis.
               </p>
               <Link
                 to="/empathy-investigator"
                 className="inline-flex items-center text-sm font-medium text-violet-600 transition-colors group-hover:text-violet-700"
               >
-                Try Local Assessment
+                Join Waiting List
                 <svg
                   className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1"
                   xmlns="http://www.w3.org/2000/svg"
@@ -198,9 +198,9 @@ const HomePage: React.FC = () => {
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <Lock className="h-6 w-6" />
               </div>
-              <h3 className="mb-2 text-xl font-medium text-slate-900">Complete Privacy</h3>
+              <h3 className="mb-2 text-xl font-medium text-slate-900">Secure Testing</h3>
               <p className="text-slate-600">
-                Run assessments entirely in your browser with local LLMs. No data leaves your device, ensuring complete privacy.
+                Comprehensive security measures ensure your AI agent testing data remains protected and confidential.
               </p>
             </div>
 
